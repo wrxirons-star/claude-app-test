@@ -77,3 +77,13 @@ def test_scoring_prefers_individuals_and_penalizes_waiting():
 
 def test_scoring_zero_without_amount():
     assert score_case({"state": "FL"}, today=TODAY)[0] == 0.0
+
+
+def test_florida_tax_deed_sweet_spot_bonus():
+    base = {"state": "FL", "sale_type": "tax_deed", "surplus_amount": 20000, "owner_name": "JANE DOE",
+            "sale_date": "2026-01-10"}
+    plain, _ = score_case(base, today=TODAY)
+    sweet, r = score_case({**base, "notice_date": "2026-02-01"}, today=TODAY)   # 218 days old
+    early, r2 = score_case({**base, "notice_date": "2026-08-15"}, today=TODAY)  # 23 days old
+    assert sweet > plain and "sweet_spot" in r
+    assert early == plain and "lien_window" in r2

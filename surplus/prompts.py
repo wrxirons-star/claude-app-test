@@ -62,6 +62,12 @@ def find_prompt(state: str, county: str | None, min_amount: float, max_leads: in
                 known_sources: list[dict]) -> str:
     src = "\n".join(f"- [{s['kind']}] {s['url']} ({s.get('notes') or ''})" for s in known_sources) or "- none yet"
     where = f"{county} County, {state}" if county else state
+    lane_note = ""
+    if state == "FL":
+        lane_note = ("Primary lane: TAX DEED surplus (clerk's tax deed department), because the claim is a clerk form, "
+                     "not a court motion. Look for the county's tax deed surplus report first; record the Notice of "
+                     "Surplus mail date as notice_date whenever the report shows it, since it starts the 120-day "
+                     "lienholder clock. Save foreclosure surplus rows too, but tag them sale_type=mortgage_foreclosure.\n")
     return f"""Find surplus / excess funds leads in {where}.
 
 Minimum surplus amount: ${min_amount:,.0f}. Save at most {max_leads} leads this run, largest first.
@@ -69,6 +75,7 @@ Minimum surplus amount: ${min_amount:,.0f}. Save at most {max_leads} leads this 
 Known sources for this area from previous runs:
 {src}
 
+{lane_note}
 Steps:
 1. If there is no known list URL, search for the county's surplus / excess proceeds / tax deed surplus
    page (clerk of court for Florida, district clerk for Texas, tax commissioner for Georgia). Record

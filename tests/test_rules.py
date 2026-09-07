@@ -18,8 +18,14 @@ def test_unknown_state():
         compute_economics("CA", 1000)
 
 
-def test_florida_foreclosure_economics():
+def test_florida_defaults_to_tax_deed():
     e = compute_economics("FL", 20000, "2026-08-20", today=TODAY)
+    assert e.sale_type == "tax_deed"
+    assert e.claim_deadline == date(2027, 8, 20)
+
+
+def test_florida_foreclosure_economics():
+    e = compute_economics("FL", 20000, "2026-08-20", sale_type="mortgage_foreclosure", today=TODAY)
     assert e.model == "contingency_fee"
     assert e.fee_cap_fraction == 0.12
     assert e.expected_gross == 2400.0
@@ -32,9 +38,14 @@ def test_florida_fee_policy_over_cap_raises():
         compute_economics("FL", 20000, fee_policy={"FL": 0.20}, today=TODAY)
 
 
-def test_florida_tax_deed_uses_notice_date():
-    e = compute_economics("FL", 10000, "2026-05-01", notice_date="2026-06-01", sale_type="tax_deed", today=TODAY)
-    assert e.claim_deadline == date(2026, 9, 29)
+def test_florida_tax_deed_notice_date_drives_warnings():
+    open_window = compute_economics("FL", 10000, "2026-07-01", notice_date="2026-08-01", today=TODAY)
+    assert any("open until 2026-11-29" in w for w in open_window.warnings)
+    closed = compute_economics("FL", 10000, "2026-01-10", notice_date="2026-02-01", today=TODAY)
+    assert any("conclusively presumed" in w for w in closed.warnings)
+    assert closed.claim_deadline == date(2027, 1, 10)
+    no_notice = compute_economics("FL", 10000, "2026-01-10", today=TODAY)
+    assert any("No Notice of Surplus" in w for w in no_notice.warnings)
 
 
 def test_texas_claim_purchase_economics():
@@ -106,3 +117,4 @@ def test_georgia_gate_ok_after_24_months():
 def test_florida_gate_caps_at_12():
     assert not check_agreement("FL", "mortgage_foreclosure", 0.13, 20000, None, None, today=TODAY).ok
     assert check_agreement("FL", "mortgage_foreclosure", 0.12, 20000, None, None, today=TODAY).ok
+    assert not check_agreement("FL", None, 0.13, 20000, None, None, today=TODAY).ok  # tax deed default

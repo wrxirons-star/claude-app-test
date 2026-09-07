@@ -36,7 +36,7 @@ marks the points that need confirmation with `[VERIFY]`.
 
 **Florida** (Fla. Stat. 45.032, 45.033, 197.582, ch. 717)
 - Foreclosure surplus: the owner of record has a 60-day priority window after the sale. Compensation to an assignee is capped at **12 percent**. Unclaimed money goes to the state after one year, after which only a registered claimant's representative may act, at a 20 percent cap, on state forms.
-- Tax deed surplus: non-owner claims are barred 120 days after the clerk mails the Notice of Surplus. The tool applies the 12 percent cap as policy.
+- Tax deed surplus (**the default lane**): the claim is a clerk form, not a court motion. Non-owner claims are barred 120 days after the clerk mails the Notice of Surplus; after that the titleholder is conclusively presumed entitled. The scorer boosts leads whose notice is 4 to 10 months old. The tool applies the 12 percent cap as policy.
 
 **Texas** (Tex. Tax Code 34.04)
 - **A non-attorney may not charge a fee** to obtain excess proceeds. An attorney's fee is capped at the lesser of 25 percent or $1,000.

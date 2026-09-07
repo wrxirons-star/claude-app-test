@@ -14,8 +14,9 @@ from typing import Any
 
 SUPPORTED_STATES = ("FL", "TX", "GA")
 
-# Default sale type per state when the lead does not say.
-DEFAULT_SALE_TYPE = {"FL": "mortgage_foreclosure", "TX": "tax_sale", "GA": "tax_sale"}
+# Default sale type per state when the lead does not say. Florida defaults to the
+# tax deed lane: a clerk form rather than a court motion, so no attorney is needed.
+DEFAULT_SALE_TYPE = {"FL": "tax_deed", "TX": "tax_sale", "GA": "tax_sale"}
 
 
 class RuleError(ValueError):
@@ -171,12 +172,21 @@ def compute_economics(
                             "an uncontested owner claim can be paid without a hearing."
                         )
             elif sale_type == "tax_deed":
+                if sale:
+                    unclaimed = sale + timedelta(days=r["unclaimed_after_days"])
+                    deadline = unclaimed
                 if notice:
-                    deadline = notice + timedelta(days=r["claim_window_days_from_notice"])
-                    warnings.append("Florida tax deed: non-owner claims are barred after the 120-day window; "
-                                    "the owner may still claim but should file promptly.")
+                    lien_bar = notice + timedelta(days=r["claim_window_days_from_notice"])
+                    deadline = unclaimed or lien_bar
+                    if today > lien_bar:
+                        warnings.append(f"Lienholder window closed {lien_bar.isoformat()}: if no claims were filed, "
+                                        "the titleholder is conclusively presumed entitled (197.582).")
+                    else:
+                        warnings.append(f"Lienholder window open until {lien_bar.isoformat()}; competing claims "
+                                        "may still be filed. The owner should file now regardless.")
                 else:
-                    warnings.append("No Notice of Surplus date known; 120-day lienholder window cannot be computed.")
+                    warnings.append("No Notice of Surplus date known; ask the clerk for the mail date to place "
+                                    "this lead on the 120-day clock.")
 
     if earliest and earliest > today:
         warnings.append(f"Do not sign an agreement before {earliest.isoformat()}.")

@@ -72,6 +72,16 @@ def score_case(case: dict[str, Any], fee_policy: dict[str, float] | None = None,
     # Lien risk: mortgage foreclosure surplus is more often eaten by junior liens
     if (case.get("sale_type") or "") == "mortgage_foreclosure":
         score *= 0.85; reasons["lien_risk"] = "mortgage foreclosure: junior liens paid first"
+    # Florida tax deed sweet spot: 120-day lienholder window closed, money still with the clerk
+    if case.get("state") == "FL" and (case.get("sale_type") or "tax_deed") == "tax_deed" and case.get("notice_date"):
+        try:
+            age = (today - date.fromisoformat(str(case["notice_date"])[:10])).days
+        except ValueError:
+            age = None
+        if age is not None and 120 < age <= 300:
+            score *= 1.15; reasons["sweet_spot"] = f"notice {age} days old: lien window closed, owner presumed entitled"
+        elif age is not None and age <= 120:
+            reasons["lien_window"] = f"open for {120 - age} more days"
     # Capital tie-up for Texas purchases
     if econ.capital_required:
         score *= 0.9; reasons["capital_required"] = econ.capital_required
