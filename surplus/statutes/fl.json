@@ -1,0 +1,80 @@
+{
+  "state": "FL",
+  "name": "Florida",
+  "last_reviewed": "2026-09-07",
+  "disclaimer": "Summarized from statute text and clerk guidance. Verify against the current Florida Statutes before relying on any number; counties add local procedure.",
+  "sale_types": {
+    "mortgage_foreclosure": {
+      "label": "Mortgage foreclosure surplus (circuit court clerk registry)",
+      "holder": "Clerk of the Circuit Court",
+      "citations": ["Fla. Stat. 45.031", "Fla. Stat. 45.032", "Fla. Stat. 45.033"],
+      "presumed_claimant": "Owner of record on the date the lis pendens was filed (rebuttable presumption), after subordinate lienholders who timely claim.",
+      "owner_priority_days_after_sale": 60,
+      "lienholder_claim_days_after_sale": 365,
+      "unclaimed_after_days": 365,
+      "unclaimed_destination": "Reported and remitted to the Florida Department of Financial Services as unclaimed property (ch. 717) one year after the sale unless a proceeding is pending.",
+      "fee_cap_fraction": 0.12,
+      "fee_cap_basis": "Total compensation paid, payable, earned or expected by a transferee/assignee may not exceed 12 percent of the surplus (45.033(3)).",
+      "assignment_requirements": [
+        "In writing and signed by the owner of record (assignor).",
+        "Discloses the surplus amount (or the sale price and the amount the clerk is holding) and the exact compensation to the assignee.",
+        "Total compensation to the assignee does not exceed 12 percent of the surplus.",
+        "Filed with the court so the court can honor the assignment and direct the clerk to disburse.",
+        "[VERIFY] Any additional formalities in the current text of 45.033(3), including whether the assignment may be executed before the sale."
+      ],
+      "claim_mechanics": "Owner files a claim/motion for disbursement in the foreclosure case; if uncontested and within 60 days of the sale, the court orders the clerk to pay after service charges. Junior liens that timely claim are paid first.",
+      "solicitation_rules": [
+        "Do not imply affiliation with the clerk or court.",
+        "Disclose that the owner may claim directly from the clerk at no charge.",
+        "Honor Do-Not-Call and opt-out requests; keep a record of every contact."
+      ],
+      "where_to_find": [
+        "County clerk of court website: search 'surplus', 'unclaimed funds', or 'registry of court'.",
+        "Foreclosure case dockets: 'certificate of disbursements' filed by the clerk shows the surplus held.",
+        "Some clerks publish a foreclosure surplus PDF list (e.g., Sumter, Brevard, Marion)."
+      ]
+    },
+    "tax_deed": {
+      "label": "Tax deed sale surplus (clerk of court)",
+      "holder": "Clerk of the Circuit Court (tax deed department)",
+      "citations": ["Fla. Stat. 197.582", "Fla. Stat. 197.502"],
+      "presumed_claimant": "Legal titleholder of record at the time of the tax deed sale, after government liens and lienholders that timely claim.",
+      "notice_trigger": "Clerk mails a Notice of Surplus to the former owner and lienholders of record.",
+      "claim_window_days_from_notice": 120,
+      "claim_window_rule": "Claims by anyone other than the property owner must be filed by close of business on the 120th day after the mailed notice or they are barred. If no claims are filed in 120 days there is a conclusive presumption the titleholder is entitled to the surplus.",
+      "owner_deadline": "The owner's claim is not barred by the 120-day rule, but unclaimed surplus is eventually remitted to the state as unclaimed property (ch. 717).",
+      "unclaimed_destination": "Florida Department of Financial Services, unclaimed property (ch. 717). [VERIFY] Timing per 197.582 and county practice.",
+      "fee_cap_fraction": 0.12,
+      "fee_cap_basis": "197.582 does not itself state a finder fee cap; this tool applies the 12 percent foreclosure cap as house policy because clerks and courts scrutinize tax deed assignments against 45.033. [VERIFY] whether a 2024-2026 amendment added an explicit cap.",
+      "assignment_requirements": [
+        "In writing, signed by the titleholder, disclosing the surplus amount and the compensation.",
+        "Clerk claim form plus proof of identity and title; notarization is typically required by the clerk.",
+        "[VERIFY] County clerk's own tax deed surplus claim form and affidavit requirements."
+      ],
+      "claim_mechanics": "Claimant files the clerk's Tax Deed Surplus claim form with ID and proof of ownership within the county's process; clerk pays valid liens first and may request more documentation.",
+      "solicitation_rules": [
+        "Do not imply affiliation with the clerk.",
+        "Disclose that the owner may claim directly at no charge."
+      ],
+      "where_to_find": [
+        "County clerk 'Tax Deed Surplus' pages and weekly reports (Lee, Pasco, Brevard, Marion, Sumter publish PDFs or tables).",
+        "RealTDM / RealAuction tax deed portals used by many Florida clerks list sale results."
+      ]
+    }
+  },
+  "unclaimed_property": {
+    "label": "After remittance to the state (ch. 717)",
+    "citations": ["Fla. Stat. 717.135", "Fla. Stat. 717.1400", "Fla. Stat. 717.124"],
+    "who_may_represent": "Only a registered claimant's representative: a Florida-licensed private investigator (Class C), a Florida CPA, or a Florida attorney, registered with DFS (717.1400).",
+    "fee_cap_fraction": 0.20,
+    "fee_cap_basis": "Fees and costs limited to 20 percent per unclaimed property account; only the DFS-prescribed Recovery Agreement or Purchase Agreement forms are valid; any other fee agreement is void (717.135).",
+    "note": "If a surplus has already been remitted to DFS, do not use the foreclosure/tax-deed templates. Either register or refer the claimant to file directly at fltreasurehunt.gov for free."
+  },
+  "outreach": {
+    "allowed_channels": ["mail", "email", "phone"],
+    "notes": [
+      "Mail first. Phone only after a letter, and never with autodialers or prerecorded messages (TCPA).",
+      "Florida Telephone Solicitation Act applies to sales calls and texts; get written consent before texting."
+    ]
+  }
+}

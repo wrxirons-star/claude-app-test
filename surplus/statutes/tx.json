@@ -1,0 +1,63 @@
+{
+  "state": "TX",
+  "name": "Texas",
+  "last_reviewed": "2026-09-07",
+  "disclaimer": "Summarized from Tex. Tax Code 34.04 and county district clerk guidance. Verify against the current statute; Texas is the most restrictive of the three states for non-attorney finders.",
+  "sale_types": {
+    "tax_sale": {
+      "label": "Tax foreclosure sale excess proceeds (district court registry)",
+      "holder": "District Clerk",
+      "citations": ["Tex. Tax Code 34.04", "Tex. Tax Code 34.03", "Tex. Tax Code 34.021"],
+      "presumed_claimant": "Former owner of the property at the time of the sale, after taxes, costs, and lienholders in priority order (34.04(c)).",
+      "petition_deadline_days_after_sale": 730,
+      "petition_deadline_rule": "A petition for excess proceeds must be filed before the second anniversary of the date of the sale, in the court that ordered the sale. Late petitions are barred and the funds go to the taxing units (34.03(b)).",
+      "assignment_waiting_days_after_deposit": 36,
+      "non_attorney_fee_allowed": false,
+      "non_attorney_fee_rule": "A person who is not an attorney may not charge a fee to obtain excess proceeds for an owner (34.04(i)). A contingency 'finder fee' by a non-attorney is unlawful.",
+      "attorney_fee_cap_fraction": 0.25,
+      "attorney_fee_cap_dollars": 1000,
+      "attorney_fee_rule": "An attorney's fee to obtain excess proceeds for an owner may not exceed 25 percent of the amount obtained or $1,000, whichever is less (34.04(i)).",
+      "assignment_requirements": [
+        "Taken on or after the 36th day after the excess proceeds were deposited in the registry of the court.",
+        "In writing and signed by the assignor (former owner).",
+        "Not the result of an in-person or telephone solicitation.",
+        "Assignee pays the assignor, on the date of the assignment, at least 80 percent of the amount of the assignor's claim.",
+        "The court may not order more than 125 percent of the amount the assignee paid to be paid to the assignee (34.04(f)).",
+        "Assignee files the assignment with the petition; county clerks commonly require notarization."
+      ],
+      "purchase_min_fraction": 0.80,
+      "assignee_recovery_cap_multiple": 1.25,
+      "business_model": "Buy the claim, do not charge a fee. Contact by mail or email only, pay at least 80 percent of the claim at signing, and recover the full claim (capped at 125 percent of what you paid). Alternatively refer the owner to a Texas attorney; the attorney's fee is capped and a non-attorney may not take a share of it.",
+      "claim_mechanics": "File a petition in the tax suit with proof of identity and ownership at the time of sale; serve the taxing units; court holds a hearing and orders the district clerk to disburse.",
+      "solicitation_rules": [
+        "No in-person or telephone solicitation for an assignment. Letters and email only.",
+        "Do not imply affiliation with the court, the district clerk, or the taxing units.",
+        "Disclose that the owner may petition on their own or through an attorney with a capped fee."
+      ],
+      "where_to_find": [
+        "District clerk 'excess proceeds' reports (Dallas, Fort Bend, Galveston publish lists; Harris and Bexar provide lists on request).",
+        "Law-firm tax sale sites (e.g., Linebarger, Perdue Brandon, McCreary Veselka) publish sale results by county.",
+        "County tax assessor-collector tax sale pages."
+      ]
+    },
+    "mortgage_foreclosure": {
+      "label": "Non-judicial deed of trust foreclosure surplus",
+      "holder": "Trustee/substitute trustee, or the district court registry if interpleaded",
+      "citations": ["Tex. Prop. Code 51.0075", "Tex. Prop. Code 51.002"],
+      "presumed_claimant": "Debtor/former owner after the lender and junior lienholders, per the deed of trust and applicable law.",
+      "non_attorney_fee_allowed": null,
+      "note": "No finder-specific statute; the trustee disburses excess to the debtor or interpleads. Treat as attorney-referral work and expect Deceptive Trade Practices Act exposure for any misleading outreach. [VERIFY] before pursuing.",
+      "where_to_find": [
+        "County real property records: trustee's deeds showing sale price versus debt.",
+        "District court interpleader filings by trustees."
+      ]
+    }
+  },
+  "outreach": {
+    "allowed_channels": ["mail", "email"],
+    "notes": [
+      "Telephone and in-person solicitation disqualify an assignment under 34.04. Do not call. Do not knock.",
+      "Send letters with a return envelope; follow up by mail only."
+    ]
+  }
+}

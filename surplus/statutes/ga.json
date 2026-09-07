@@ -1,0 +1,53 @@
+{
+  "state": "GA",
+  "name": "Georgia",
+  "last_reviewed": "2026-09-07",
+  "disclaimer": "Summarized from O.C.G.A. 48-4-5, 44-12-224 and county tax commissioner guidance. The 10 percent cap and 24-month unenforceability period are reflected in current county guidance; [VERIFY] the enacting session law and its effective date before relying on them.",
+  "sale_types": {
+    "tax_sale": {
+      "label": "Tax sale excess funds (tax commissioner / sheriff)",
+      "holder": "County Tax Commissioner",
+      "citations": ["O.C.G.A. 48-4-5", "O.C.G.A. 44-12-224", "O.C.G.A. 48-4-40 (redemption)"],
+      "presumed_claimant": "Record owner at the time of the tax sale, record holders of security deeds, and other parties with a recorded equity interest or claim, paid in order of lien priority.",
+      "notice_rule": "Levying officer mails written notice of the excess to the record owner and lienholders within 30 days after the sale.",
+      "turnover_to_state_days_after_sale": 1826,
+      "turnover_rule": "After five years from the sale, unclaimed excess funds are paid to the Georgia Department of Revenue as unclaimed property.",
+      "redemption_note": "The former owner keeps a right of redemption for 12 months after the tax sale (48-4-40). Excess funds are usually not disbursed until the redemption period has run and title has been barred; counties differ.",
+      "fee_cap_fraction": 0.10,
+      "fee_cap_basis": "Fees charged by third parties for assisting in recovery of excess funds may not exceed 10 percent of the excess recovered.",
+      "agreement_unenforceable_months": 24,
+      "agreement_unenforceable_rule": "Private agreements between claimants and third parties who locate claimants or request payment on their behalf are unenforceable for 24 months after the funds were first placed in escrow.",
+      "direct_payment_rule": "Recovered funds must be paid directly to the claimant, not to the finder, even under a power of attorney (44-12-224 model adopted by counties).",
+      "assignment_requirements": [
+        "Written agreement signed by the claimant, dated at least 24 months after the escrow date, fee stated and not more than 10 percent.",
+        "Funds payable to the claimant only; the finder invoices the claimant after payment.",
+        "Many counties require a notarized claim form, affidavit of ownership, indemnification agreement, and photo ID.",
+        "Some tax commissioners accept filings only from the claimant or a Georgia-licensed attorney; check the county before drafting."
+      ],
+      "claim_mechanics": "Submit the county's excess funds claim form with ID, proof of ownership at time of sale, and any lien releases; conflicting claims are interpleaded into superior court.",
+      "solicitation_rules": [
+        "Do not imply affiliation with the tax commissioner or sheriff.",
+        "Disclose that the owner may claim directly at no charge and that your fee is capped at 10 percent.",
+        "Georgia Fair Business Practices Act applies; the Attorney General has pursued excess funds recovery companies."
+      ],
+      "where_to_find": [
+        "County tax commissioner 'Excess Funds' pages and PDF lists (Gwinnett, Fulton, Cobb, DeKalb, Chatham, Forsyth, Hall, Paulding, Athens-Clarke publish lists).",
+        "Georgia Department of Revenue unclaimed property for funds older than five years."
+      ]
+    }
+  },
+  "unclaimed_property": {
+    "label": "After turnover to the Department of Revenue",
+    "citations": ["O.C.G.A. 44-12-224"],
+    "fee_cap_fraction": 0.10,
+    "agreement_unenforceable_months": 24,
+    "note": "Same 10 percent cap and 24-month rule; funds paid directly to the owner."
+  },
+  "outreach": {
+    "allowed_channels": ["mail", "email", "phone"],
+    "notes": [
+      "Mail first. The 24-month rule means the useful contact window opens two years after the sale and closes at five.",
+      "No autodialers or prerecorded calls; honor Do-Not-Call."
+    ]
+  }
+}
