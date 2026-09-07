@@ -1,7 +1,8 @@
 # Surplus Funds Recovery Agent
 
 A Python command-line agent, built on the Anthropic SDK, for a public-record
-surplus funds recovery business in **Florida, Texas, and Georgia**.
+surplus funds recovery business. **Florida is the active state.** Rulebooks for
+Texas and Georgia are included but switched off (`active_states` in config).
 
 When a property is sold at a foreclosure or tax sale for more than what was
 owed, the leftover money ("surplus" or "excess proceeds") sits with a county
@@ -60,7 +61,8 @@ surplus init                              # creates ~/.surplus/config.json
 
 Edit `~/.surplus/config.json` with your business name, address, phone, email,
 fee policy, and (optionally) an attorney partner. Fee policy above the cap is
-rejected at draft time.
+rejected at draft time. `active_states` defaults to `["FL"]`; the agent, import,
+and find commands refuse any state not listed there.
 
 Environment variables: `SURPLUS_HOME` (data dir), `SURPLUS_MODEL` (default
 `claude-opus-5`), `SURPLUS_EFFORT` (`low` to `max`, default `high`).

@@ -27,7 +27,7 @@ from pathlib import Path
 from .config import load_settings, write_default_config
 from .documents import DOC_TYPES, render
 from .packet import build_packet
-from .rules import RuleError, SUPPORTED_STATES, compute_economics, rules_summary
+from .rules import RuleError, compute_economics, rules_summary
 from .scoring import classify_owner, score_case
 from .store import CASE_STATUSES, Store
 
@@ -75,6 +75,7 @@ def cmd_fee(args, settings, store):
 
 
 def cmd_import(args, settings, store):
+    _require_active(settings, [args.state.upper()])
     path = Path(args.file)
     with path.open(newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
@@ -182,8 +183,18 @@ def cmd_packet(args, settings, store):
     print(json.dumps(res, indent=2))
 
 
+def _require_active(settings, states: list[str]) -> None:
+    inactive = [s for s in states if s not in settings.operator.active_states]
+    if inactive:
+        raise SystemExit(
+            f"{', '.join(inactive)} is switched off. Active states: {', '.join(settings.operator.active_states)}. "
+            f"Edit active_states in {settings.config_path} to change this."
+        )
+
+
 def _agent(settings, store, task: str, states: list[str], quiet: bool) -> None:
     import anthropic
+    _require_active(settings, states)
     from .agent import run_agent  # imported lazily so non-API commands never touch the SDK
     try:
         print(run_agent(settings, store, task, states, quiet=quiet))
@@ -203,9 +214,10 @@ def _agent(settings, store, task: str, states: list[str], quiet: bool) -> None:
 
 def cmd_find(args, settings, store):
     from .prompts import find_prompt
-    task = find_prompt(args.state, args.county, args.min_amount, args.max_leads,
-                       store.sources(args.state, args.county))
-    _agent(settings, store, task, [args.state], args.quiet)
+    state = args.state.upper()
+    _require_active(settings, [state])
+    task = find_prompt(state, args.county, args.min_amount, args.max_leads, store.sources(state, args.county))
+    _agent(settings, store, task, [state], args.quiet)
 
 
 def cmd_locate(args, settings, store):
@@ -222,7 +234,7 @@ def cmd_prepare(args, settings, store):
 
 
 def cmd_run(args, settings, store):
-    states = [s.upper() for s in args.states.split(",")] if args.states else list(SUPPORTED_STATES)
+    states = [s.upper() for s in args.states.split(",")] if args.states else list(settings.operator.active_states)
     _agent(settings, store, args.task, states, args.quiet)
 
 

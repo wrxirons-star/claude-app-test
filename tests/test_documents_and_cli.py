@@ -99,3 +99,16 @@ def test_cli_roundtrip(env, tmp_path, capsys):
     assert "10%" in capsys.readouterr().out
     with pytest.raises(SystemExit):
         main(["rules", "CA"])
+
+
+def test_inactive_state_is_refused(env, tmp_path, capsys):
+    settings, store = env
+    assert settings.operator.active_states == ["FL"]
+    csv_path = tmp_path / "tx.csv"
+    csv_path.write_text("Case No,Owner,Amount\n1,A,100\n")
+    with pytest.raises(SystemExit) as exc:
+        main(["import", str(csv_path), "--state", "TX", "--county", "Dallas", "--sale-type", "tax_sale"])
+    assert "switched off" in str(exc.value)
+    with pytest.raises(SystemExit) as exc:
+        main(["find", "GA", "--county", "Cobb"])
+    assert "switched off" in str(exc.value)

@@ -23,6 +23,8 @@ def home_dir() -> Path:
 class OperatorProfile:
     """Who is doing the recovery work. Rendered into letters and agreements."""
 
+    # States the agent may work. Rulebooks exist for FL, TX, GA; only these are used.
+    active_states: list[str] = field(default_factory=lambda: ["FL"])
     business_name: str = "[YOUR BUSINESS NAME]"
     signer_name: str = "[YOUR NAME]"
     signer_title: str = "Principal"
@@ -82,6 +84,7 @@ def load_settings() -> Settings:
             raw = json.loads(cfg_path.read_text())
             known = {k: v for k, v in raw.items() if k in OperatorProfile.__dataclass_fields__}
             operator = OperatorProfile(**known)
+            operator.active_states = [s.upper() for s in operator.active_states]
         except (json.JSONDecodeError, TypeError) as exc:
             raise SystemExit(f"Could not parse {cfg_path}: {exc}") from exc
     return Settings(
