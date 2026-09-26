@@ -116,7 +116,13 @@ CREATE TABLE IF NOT EXISTS roll (
   phy_city TEXT,
   sale_prc1 TEXT,
   sale_yr1 TEXT,
-  sale_mo1 TEXT
+  sale_mo1 TEXT,
+  fid_name TEXT,
+  fid_addr1 TEXT,
+  fid_addr2 TEXT,
+  fid_city TEXT,
+  fid_state TEXT,
+  fid_zip TEXT
 );
 CREATE INDEX IF NOT EXISTS roll_parcel ON roll(state, county, parcel_norm, year);
 CREATE INDEX IF NOT EXISTS roll_owner ON roll(state, county, owner);
@@ -143,6 +149,15 @@ class Store:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Add columns introduced after a database was created."""
+        have = {r[1] for r in self.conn.execute("PRAGMA table_info(roll)").fetchall()}
+        for col in ("fid_name", "fid_addr1", "fid_addr2", "fid_city", "fid_state", "fid_zip"):
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE roll ADD COLUMN {col} TEXT")
+        self.conn.commit()
 
     def close(self) -> None:
         self.conn.close()
@@ -345,7 +360,8 @@ class Store:
     def insert_roll_rows(self, rows: list[tuple]) -> None:
         self.conn.executemany(
             "INSERT INTO roll (state, county, year, parcel_norm, parcel_raw, owner, addr1, addr2, city, st, zip, "
-            "phy_addr, phy_city, sale_prc1, sale_yr1, sale_mo1) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+            "phy_addr, phy_city, sale_prc1, sale_yr1, sale_mo1, fid_name, fid_addr1, fid_addr2, fid_city, "
+            "fid_state, fid_zip) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
 
     def roll_years(self, state: str | None = None, county: str | None = None) -> list[dict[str, Any]]:
         where, params = [], []

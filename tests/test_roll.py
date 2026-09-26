@@ -52,3 +52,40 @@ def test_html_source_rejected(env, tmp_path):
     p.write_text("<html><body>not a roll</body></html>")
     with pytest.raises(ValueError):
         load_roll(store, str(p), "FL", "Lee", 2025)
+
+
+LEE_CSV = (
+    '"CountyNumber","Strap","RollType","RollYear","Name","Address1","Address2","City","State","ZipCode","DomicileState",'
+    '"FiduciaryName","FiduciaryAddress1","FiduciaryAddress2","FiduciaryCity","FiduciaryState","FiduciaryZip","FiduciaryType",'
+    '"Legal","SiteAddress1","SiteAddress2","SiteCity","SiteZip"\r\n'
+    '"46","304324C2010600090","R","2025","WEST MARTIN","PO BOX 9","","CAPE CORAL","FL","33915","FL","","","","","","","",'
+    '"LOT 9","1388 WEEPING WILLOW CT","","CAPE CORAL","33909"\r\n'
+    '"46","014423C2024650400","R","2025","VINGIANO PATRICIA EST","","","","","","","SMITH JOHN PR","5 MAIN ST","","WEST HAVEN","CT","06516","PR",'
+    '"LOT 4","1317 NE 5TH PL","","CAPE CORAL","33909"\r\n'
+)
+
+
+def test_lee_county_header_variant_and_fiduciary(env, tmp_path):
+    settings, store = env
+    p = tmp_path / "2025_NAL12D8.txt"
+    p.write_text(LEE_CSV)
+    res = load_roll(store, str(p), "FL", "Lee", 2025)
+    assert res["rows"] == 2
+    w = store.roll_lookup("FL", "Lee", normalize_parcel("30-43-24-C2-01060.0090"))[0]
+    assert w["owner"] == "WEST MARTIN" and w["addr1"] == "PO BOX 9" and w["phy_addr"] == "1388 WEEPING WILLOW CT"
+    v = store.roll_lookup("FL", "Lee", normalize_parcel("01-44-23-C2-02465.0400"))[0]
+    assert v["fid_name"] == "SMITH JOHN PR" and v["fid_city"] == "WEST HAVEN"
+    from surplus.tools import make_tools
+    tools = {t.name: t for t in make_tools(settings, store)}
+    assert "SMITH JOHN PR" in tools["prior_roll_address"].call({"county": "Lee", "parcel_id": "01-44-23-C2-02465.0400"})
+
+
+def test_zip_with_txt_and_pdfs_picks_the_roll(env, tmp_path):
+    settings, store = env
+    p = tmp_path / "2025 Tax Roll NAL12D8.zip"
+    with zipfile.ZipFile(p, "w") as zf:
+        zf.writestr("2025_NAL12D8.txt", LEE_CSV)
+        zf.writestr("DOR_NAL_Field_Info_2025.pdf", b"%PDF-1.4 junk")
+        zf.writestr("Field_List_NAL12D8_2025.txt", "Field list\nStrap\nName\n")
+    res = load_roll(store, str(p), "FL", "Lee", 2025)
+    assert res["rows"] == 2 and res["files"] == 1

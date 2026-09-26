@@ -21,19 +21,27 @@ from .fetch import fetch
 from .store import Store
 
 # Column names as published by DOR (case-insensitive; a few counties vary).
+# The DOR distribution uses OWN_NAME style names; Lee County's own NAL12D8
+# export uses Name / Address1 / Strap style. Both are covered.
 COLS = {
-    "parcel": ("PARCEL_ID", "PARCEL", "STRAP", "PARCELID"),
-    "owner": ("OWN_NAME", "OWNER", "OWNER_NAME"),
-    "addr1": ("OWN_ADDR1", "OWN_ADDR", "OWNER_ADDR1"),
-    "addr2": ("OWN_ADDR2", "OWNER_ADDR2"),
-    "city": ("OWN_CITY", "OWNER_CITY"),
-    "state": ("OWN_STATE", "OWNER_STATE"),
-    "zip": ("OWN_ZIPCD", "OWN_ZIP", "OWNER_ZIP"),
-    "phy_addr": ("PHY_ADDR1", "PHY_ADDR", "SITE_ADDR"),
-    "phy_city": ("PHY_CITY",),
+    "parcel": ("PARCEL_ID", "PARCEL", "STRAP", "PARCELID", "FOLIO"),
+    "owner": ("OWN_NAME", "OWNER", "OWNER_NAME", "NAME"),
+    "addr1": ("OWN_ADDR1", "OWN_ADDR", "OWNER_ADDR1", "ADDRESS1", "ADDRESS"),
+    "addr2": ("OWN_ADDR2", "OWNER_ADDR2", "ADDRESS2"),
+    "city": ("OWN_CITY", "OWNER_CITY", "CITY"),
+    "state": ("OWN_STATE", "OWNER_STATE", "STATE"),
+    "zip": ("OWN_ZIPCD", "OWN_ZIP", "OWNER_ZIP", "ZIPCODE", "ZIP"),
+    "phy_addr": ("PHY_ADDR1", "PHY_ADDR", "SITE_ADDR", "SITEADDRESS1", "SITE_ADDRESS1"),
+    "phy_city": ("PHY_CITY", "SITECITY", "SITE_CITY"),
     "sale_prc1": ("SALE_PRC1",),
     "sale_yr1": ("SALE_YR1",),
     "sale_mo1": ("SALE_MO1",),
+    "fid_name": ("FIDUCIARYNAME", "FIDUCIARY_NAME", "FIDU_NAME"),
+    "fid_addr1": ("FIDUCIARYADDRESS1", "FIDUCIARY_ADDRESS1", "FIDU_ADDR1"),
+    "fid_addr2": ("FIDUCIARYADDRESS2", "FIDUCIARY_ADDRESS2"),
+    "fid_city": ("FIDUCIARYCITY", "FIDUCIARY_CITY", "FIDU_CITY"),
+    "fid_state": ("FIDUCIARYSTATE", "FIDUCIARY_STATE", "FIDU_STATE"),
+    "fid_zip": ("FIDUCIARYZIP", "FIDUCIARY_ZIP", "FIDU_ZIP"),
 }
 
 
@@ -100,14 +108,16 @@ def load_roll(store: Store, source: str, state: str, county: str, year: int,
             rows.append((state.upper(), county, year, normalize_parcel(parcel), parcel, get(r, "owner"),
                          get(r, "addr1"), get(r, "addr2"), get(r, "city"), get(r, "state"), get(r, "zip"),
                          get(r, "phy_addr"), get(r, "phy_city"), get(r, "sale_prc1"), get(r, "sale_yr1"),
-                         get(r, "sale_mo1")))
+                         get(r, "sale_mo1"), get(r, "fid_name"), get(r, "fid_addr1"), get(r, "fid_addr2"),
+                         get(r, "fid_city"), get(r, "fid_state"), get(r, "fid_zip")))
             if len(rows) >= batch:
                 store.insert_roll_rows(rows); total += len(rows); rows = []
         if rows:
             store.insert_roll_rows(rows); total += len(rows)
     store.conn.commit()
     if files == 0:
-        raise ValueError("No CSV with PARCEL_ID and OWN_NAME columns found in that file.")
+        raise ValueError("No CSV with a parcel column and an owner-name column found in that file. "
+                         "Expected headers like PARCEL_ID/OWN_NAME (state format) or Strap/Name (Lee format).")
     store.audit("cli", "roll_load", None, f"{state} {county} {year}: {total} rows from {source}")
     return {"state": state.upper(), "county": county, "year": year, "rows": total, "files": files,
             "saved_file": saved}

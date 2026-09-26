@@ -408,7 +408,9 @@ def make_tools(settings: Settings, store: Store) -> list:
             return _j({"matches": 0, "loaded_years": [y["year"] for y in years],
                        "hint": "Parcel not in the loaded roll(s); check the parcel id or load the year before the sale."})
         slim = [{k: r.get(k) for k in ("year", "parcel_raw", "owner", "addr1", "addr2", "city", "st", "zip",
-                                        "phy_addr", "phy_city", "sale_yr1", "sale_mo1", "sale_prc1")} for r in rows]
+                                        "phy_addr", "phy_city", "sale_yr1", "sale_mo1", "sale_prc1",
+                                        "fid_name", "fid_addr1", "fid_addr2", "fid_city", "fid_state", "fid_zip")}
+                for r in rows]
         return _j({"matches": len(rows), "rows": slim,
                    "note": "If the mailing address equals the property address, the owner lived there before the sale "
                            "and has since moved; look for a forwarding address, the deed grantee address, or relatives."})
