@@ -80,3 +80,41 @@ def test_import_report_from_local_file(env, tmp_path):
     # importing again updates rather than duplicates
     res2 = import_report(settings, store, "FL", "Lee", str(f), min_amount=5000)
     assert res2["created"] == 0 and res2["updated"] == 3
+
+
+WRAPPED = """--- page 3 ---
+Tax Deed Number Sale Date Balance Balance Date Property Address Parcel ID Owner Name Lienholder Claim Period Expires
+2024002473 2/25/2025 39,488.65 10/29/2025 2213 KENDALL AVE S LEHIGH ACRES FL 33973 32-44-26-09-00025.0040
+BARBARA J BROWN, DAVID W SCHULTZ, KATHLEEN SCHULTZ, DAVID SCHULTZ, MICHAEL H FLANAGAN,
+NANCY FLANAGAN 7/10/2025
+2024002737 4/8/2025 62,565.17 10/6/2025 775 KNOTTY PINE CIR NORTH FORT MYERS FL 33917 36-43-24-11-0000A.0460
+INGRID STOBBE TRUST UNDER AGREEMENT DATED AUGUST 6, 2014, STOBBE INGRID TR FOR INGRID
+2025000125 7/29/2025 142,006.08 8/6/2025 1519 FOUNTAIN AVE FORT MYERS FL 33919 03-45-24-05-0000F.0100 CAROL JO SOFKO TRUST 12/12/2025
+2025001675 12/16/2025 65,844.13 9/2/2026 ACCESS UNDETERMINED BONITA SPRINGS FL 29-47-26-B2-00002.0020
+ESTATE OF DOLORES LORD, CHARLES T KOMPARE, CHERYL SPRAN, GARY KOMPARE, JOHN SKALA,
+--- page 4 ---
+Tax Deed Number Sale Date Balance Balance Date Property Address Parcel ID Owner Name Lienholder Claim Period Expires
+2025001936 1/13/2026 55,004.69 8/4/2026 7043 NEW POST DR 4 NORTH FORT MYERS FL 33917 36-43-24-20-0000G.0040 MYRNA KIDD, ESTATE OF MYRNA KIDD 5/29/2026
+"""
+
+
+def test_lee_parser_wrapped_owners_and_lettered_parcels():
+    by = {r["case_number"]: r for r in parse(WRAPPED, "u")}
+    assert len(by) == 5
+    r = by["2024002473"]
+    assert r["parcel_id"] == "32-44-26-09-00025.0040"
+    assert r["owner_name"].startswith("BARBARA J BROWN") and r["owner_name"].endswith("NANCY FLANAGAN")
+    assert r["extra"]["lienholder_claim_expires"] == "2025-07-10" and r["notice_date"] == "2025-03-12"
+    r = by["2024002737"]
+    assert r["parcel_id"] == "36-43-24-11-0000A.0460"
+    assert r["property_address"] == "775 KNOTTY PINE CIR NORTH FORT MYERS FL 33917"
+    assert r["owner_name"].startswith("INGRID STOBBE TRUST")
+    assert classify_owner(r["owner_name"]) == "entity"
+    r = by["2025000125"]
+    assert r["parcel_id"] == "03-45-24-05-0000F.0100" and r["owner_name"] == "CAROL JO SOFKO TRUST"
+    r = by["2025001675"]
+    assert r["property_address"] == "ACCESS UNDETERMINED BONITA SPRINGS FL"
+    assert r["owner_name"].startswith("ESTATE OF DOLORES LORD") and r["owner_name"].endswith("JOHN SKALA")
+    assert classify_owner(r["owner_name"]) == "estate"
+    r = by["2025001936"]
+    assert r["parcel_id"] == "36-43-24-20-0000G.0040" and r["owner_name"] == "MYRNA KIDD, ESTATE OF MYRNA KIDD"
