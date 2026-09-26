@@ -70,7 +70,7 @@ def load_roll(store: Store, source: str, state: str, county: str, year: int,
     if local.exists():
         raw, saved = local.read_bytes(), str(local)
     else:
-        f = fetch(source, save_dir=save_dir)
+        f = fetch(source, save_dir=save_dir, max_bytes=4 * 1024 ** 3, timeout=900)
         if f.kind == "html":
             raise ValueError("That URL returned a web page, not a roll file. Pass the direct .zip or .csv link "
                              "or a downloaded file path.")

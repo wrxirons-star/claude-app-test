@@ -24,9 +24,25 @@ def server():
         def log_message(self, *a):  # quiet
             pass
 
+        def do_HEAD(self):
+            self.do_GET()
+
         def do_GET(self):
             if self.path.startswith("/forbidden"):
                 self.send_response(403); self.end_headers(); return
+            if self.path.startswith("/big.zip"):
+                import zipfile as _z, io as _io
+                buf = _io.BytesIO()
+                with _z.ZipFile(buf, "w") as zf:
+                    zf.writestr("roll.csv", "PARCEL_ID,OWN_NAME\n" + "1,A\n" * 200000)
+                body, ctype = buf.getvalue(), "application/zip"
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(body)
+                return
             if self.path.startswith("/report.pdf"):
                 body, ctype = pdf, "application/pdf"
             elif self.path.startswith("/showpublisheddocument/11509"):
@@ -97,8 +113,8 @@ def test_local_file_path(tmp_path):
 
 def test_forbidden_falls_through_with_clear_message(server, tmp_path, monkeypatch):
     import surplus.fetch as fm
-    monkeypatch.setattr(fm, "_download_curl", lambda u, t: (_ for _ in ()).throw(fm.Forbidden("curl got 403")))
-    monkeypatch.setattr(fm, "_download_playwright", lambda u, t: (_ for _ in ()).throw(fm.Forbidden("no browser")))
+    monkeypatch.setattr(fm, "_download_curl", lambda u, t, m=None: (_ for _ in ()).throw(fm.Forbidden("curl got 403")))
+    monkeypatch.setattr(fm, "_download_playwright", lambda u, t, m=None: (_ for _ in ()).throw(fm.Forbidden("no browser")))
     with pytest.raises(fm.Forbidden) as exc:
         fetch(server + "/forbidden", save_dir=tmp_path)
     assert "refused scripted access" in str(exc.value) and "playwright" in str(exc.value)
@@ -119,3 +135,18 @@ def test_clean_url_encodes_spaces():
     assert _clean_url("https://x.org/TaxRoll/nalzip/2025 Tax Roll NAL12D8.zip") == "https://x.org/TaxRoll/nalzip/2025%20Tax%20Roll%20NAL12D8.zip"
     assert _clean_url("https://x.org/a?b=1&c=%27d%27") == "https://x.org/a?b=1&c=%27d%27"
     assert _clean_url("/tmp/file with space.pdf") == "/tmp/file with space.pdf"
+
+
+def test_max_bytes_cap_and_override(server, tmp_path):
+    from surplus.fetch import fetch
+    with pytest.raises(Exception):
+        fetch(server + "/big.zip", save_dir=tmp_path, max_bytes=1000)
+    f = fetch(server + "/big.zip", save_dir=tmp_path, max_bytes=100 * 1024 * 1024)
+    assert f.kind == "binary" and f.saved_to.endswith(".zip")
+
+
+def test_playwright_downloads_binary_via_chrome(server, tmp_path):
+    pytest.importorskip("playwright")
+    import surplus.fetch as fm
+    data, ctype, final = fm._download_playwright(server + "/big.zip", timeout=60, max_bytes=100 * 1024 * 1024)
+    assert data[:2] == b"PK" and "zip" in ctype

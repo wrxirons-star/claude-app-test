@@ -102,19 +102,26 @@ class Forbidden(Exception):
     pass
 
 
-def _download_urllib(url: str, timeout: int) -> tuple[bytes, str, str]:
+def _download_urllib(url: str, timeout: int, max_bytes: int = MAX_BYTES) -> tuple[bytes, str, str]:
     req = urllib.request.Request(url, headers=BROWSER_HEADERS)
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as resp:
-            data = resp.read(MAX_BYTES + 1)
-            return data, resp.headers.get("Content-Type", ""), resp.geturl()
+            chunks, size = [], 0
+            while True:
+                chunk = resp.read(1 << 20)
+                if not chunk:
+                    break
+                chunks.append(chunk); size += len(chunk)
+                if size > max_bytes:
+                    raise ValueError(f"Document larger than {max_bytes // (1024 * 1024)} MB")
+            return b"".join(chunks), resp.headers.get("Content-Type", ""), resp.geturl()
     except urllib.error.HTTPError as exc:
         if exc.code in (403, 406, 429, 503):
             raise Forbidden(f"HTTP {exc.code}") from exc
         raise
 
 
-def _download_curl(url: str, timeout: int) -> tuple[bytes, str, str]:
+def _download_curl(url: str, timeout: int, max_bytes: int = MAX_BYTES) -> tuple[bytes, str, str]:
     import shutil
     import subprocess
     import tempfile
@@ -158,7 +165,18 @@ CHALLENGE_TITLES = ("just a moment", "attention required", "access denied", "che
                     "verify you are human", "one moment")
 
 
-def _download_playwright(url: str, timeout: int) -> tuple[bytes, str, str]:
+_HEAD_JS = """async (u) => {
+  try {
+    const r = await fetch(u, {method: 'HEAD', credentials: 'include', redirect: 'follow'});
+    return {status: r.status, ctype: r.headers.get('content-type') || '', length: Number(r.headers.get('content-length') || 0)};
+  } catch (e) { return {status: 0, ctype: '', length: 0}; }
+}"""
+
+LARGE = 20 * 1024 * 1024
+BINARY_TYPES = ("zip", "octet-stream", "x-zip", "vnd.ms-excel", "spreadsheet", "dbf")
+
+
+def _download_playwright(url: str, timeout: int, max_bytes: int = MAX_BYTES) -> tuple[bytes, str, str]:
     """Drive a real Chrome tab. The request for the target file is issued from
     inside the page with fetch(), so it carries Chrome's TLS/HTTP fingerprint
     and any challenge cookies the site set on the landing page."""
@@ -191,6 +209,18 @@ def _download_playwright(url: str, timeout: int) -> tuple[bytes, str, str]:
                     break
                 page.wait_for_timeout(1500)
             page.wait_for_timeout(1000)
+            head = page.evaluate(_HEAD_JS, url)
+            if head["length"] > LARGE or any(t in head["ctype"].lower() for t in BINARY_TYPES):
+                # Big or binary: let Chrome download it to disk rather than base64 through the page.
+                with page.expect_download(timeout=max(timeout, 600) * 1000) as dl_info:
+                    page.evaluate("u => { const a = document.createElement('a'); a.href = u; a.download = ''; "
+                                  "document.body.appendChild(a); a.click(); }", url)
+                dl = dl_info.value
+                path = dl.path()
+                data = Path(path).read_bytes()
+                if len(data) > max_bytes:
+                    raise ValueError(f"Document larger than {max_bytes // (1024 * 1024)} MB")
+                return data, head["ctype"] or "application/octet-stream", dl.url or url
             res = page.evaluate(_PAGE_FETCH_JS, url)
             if res["status"] in (403, 406, 429, 503):
                 # Last resort: navigate to it directly and take the rendered HTML.
@@ -212,7 +242,7 @@ def _clean_url(url: str) -> str:
     return quote(url.strip(), safe=":/?&=%#+,;@!$'()*[]~-._")
 
 
-def _download(url: str, timeout: int = 60) -> tuple[bytes, str, str]:
+def _download(url: str, timeout: int = 60, max_bytes: int = MAX_BYTES) -> tuple[bytes, str, str]:
     """Local file, then urllib, then curl, then a headless browser."""
     url = _clean_url(url)
     if url.startswith("file://") or (not url.startswith("http") and Path(url).expanduser().exists()):
@@ -223,9 +253,9 @@ def _download(url: str, timeout: int = 60) -> tuple[bytes, str, str]:
     errors = []
     for fn in (_download_urllib, _download_curl, _download_playwright):
         try:
-            data, ctype, final = fn(url, timeout)
-            if len(data) > MAX_BYTES:
-                raise ValueError(f"Document larger than {MAX_BYTES // (1024 * 1024)} MB")
+            data, ctype, final = fn(url, timeout, max_bytes)
+            if len(data) > max_bytes:
+                raise ValueError(f"Document larger than {max_bytes // (1024 * 1024)} MB")
             return data, ctype, final
         except Forbidden as exc:
             errors.append(f"{fn.__name__}: {exc}")
@@ -256,8 +286,8 @@ def html_text(data: bytes, base: str) -> tuple[str, list[tuple[str, str]]]:
     return text.strip(), parser.links
 
 
-def fetch(url: str, save_dir: Path | None = None) -> Fetched:
-    data, ctype, final_url = _download(url)
+def fetch(url: str, save_dir: Path | None = None, max_bytes: int = MAX_BYTES, timeout: int = 60) -> Fetched:
+    data, ctype, final_url = _download(url, timeout, max_bytes)
     ctype_l = ctype.lower()
     is_pdf = "pdf" in ctype_l or data[:5] == b"%PDF-"
     saved = None
@@ -266,6 +296,8 @@ def fetch(url: str, save_dir: Path | None = None) -> Fetched:
         name = re.sub(r"[^A-Za-z0-9._-]+", "_", final_url.split("//", 1)[-1])[:120]
         if is_pdf and not name.lower().endswith(".pdf"):
             name += ".pdf"
+        if data[:2] == b"PK" and not name.lower().endswith(".zip"):
+            name += ".zip"
         path = save_dir / name
         path.write_bytes(data)
         saved = str(path)
