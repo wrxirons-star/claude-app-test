@@ -144,7 +144,10 @@ def cmd_cases(args, settings, store):
 
 def cmd_fetch(args, settings, store):
     from .fetch import fetch
-    f = fetch(args.url, save_dir=settings.home / "downloads")
+    try:
+        f = fetch(args.url, save_dir=settings.home / "downloads")
+    except Exception as exc:
+        raise SystemExit(f"Could not fetch {args.url}: {exc}")
     print(f"{f.kind} {f.content_type} -> {f.saved_to}", file=sys.stderr)
     print(f.text if not args.links else "\n".join(f"{l}\t{u}" for l, u in f.links))
 
