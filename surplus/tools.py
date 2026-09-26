@@ -12,6 +12,7 @@ from anthropic import beta_tool
 from .config import Settings
 from .documents import DOC_TYPES, render
 from .fetch import fetch
+from . import parcels
 from .packet import build_packet
 from .rules import RuleError, check_agreement, compute_economics, load_rules, normalize_state
 from .scoring import classify_owner, score_case
@@ -40,10 +41,12 @@ def make_tools(settings: Settings, store: Store) -> list:
     @beta_tool
     def economics(state: str, surplus_amount: float, sale_date: str | None = None,
                   deposit_date: str | None = None, notice_date: str | None = None,
-                  sale_type: str | None = None) -> str:
+                  sale_type: str | None = None, listed_date: str | None = None) -> str:
         """Compute what a lead is worth and when it can be acted on: fee cap, expected gross,
         capital required (Texas purchases), earliest lawful agreement date, claim deadline,
-        and warnings. Call this for every lead before recommending it.
+        and warnings. Call this for every lead before recommending it. Pass the case's
+        extra.listed_date when it has one: a lead seen on the holder's current report is
+        provably still held, which overrides a computed deadline.
 
         Args:
             state: FL, TX, or GA.
@@ -52,10 +55,12 @@ def make_tools(settings: Settings, store: Store) -> list:
             deposit_date: ISO date the funds hit the registry or escrow, if different from the sale date.
             notice_date: Florida tax deed only: date the clerk mailed the Notice of Surplus.
             sale_type: mortgage_foreclosure, tax_deed, or tax_sale. Defaults per state.
+            listed_date: ISO date the lead was last seen on the holder's report (case extra.listed_date).
         """
         try:
             e = compute_economics(state, surplus_amount, sale_date, deposit_date, notice_date, sale_type,
-                                  op.fee_policy, op.tx_purchase_fraction, bool(op.attorney_name))
+                                  op.fee_policy, op.tx_purchase_fraction, bool(op.attorney_name),
+                                  listed_date=listed_date)
         except RuleError as exc:
             return f"Error: {exc}"
         return _j(e.to_dict())
@@ -164,14 +169,18 @@ def make_tools(settings: Settings, store: Store) -> list:
                     next_action_date: str | None = None, sale_date: str | None = None,
                     deposit_date: str | None = None, notice_date: str | None = None,
                     surplus_amount: float | None = None, property_address: str | None = None,
-                    holder: str | None = None, extra: dict[str, Any] | None = None) -> str:
+                    holder: str | None = None, owner_type: str | None = None,
+                    extra: dict[str, Any] | None = None) -> str:
         """Update fields on a case. Use extra for claimant details used in documents:
         claimant_name, claimant_address, claimant_phone, claimant_email, recipient_name,
         recipient_address, holder_address, court_name, contact_channel, agreement_date.
+        Set owner_type to "estate" as soon as you find credible evidence the owner died; the
+        scorer and the operator rely on it.
 
         Args:
             case_id: The case id.
             status: new, qualified, locating, contacting, engaged, signed, filed, paid, or closed.
+            owner_type: individual, multiple, estate, entity, or unknown.
             next_action: One sentence describing the next thing the operator should do.
             next_action_date: ISO date for that action.
             sale_date: ISO date.
@@ -184,10 +193,12 @@ def make_tools(settings: Settings, store: Store) -> list:
         """
         if status and status not in CASE_STATUSES:
             return f"Error: invalid status {status!r}; choose from {', '.join(CASE_STATUSES)}"
+        if owner_type and owner_type not in ("individual", "multiple", "estate", "entity", "unknown"):
+            return "Error: owner_type must be individual, multiple, estate, entity, or unknown"
         fields = {k: v for k, v in dict(status=status, next_action=next_action, next_action_date=next_action_date,
                                         sale_date=sale_date, deposit_date=deposit_date, notice_date=notice_date,
                                         surplus_amount=surplus_amount, property_address=property_address,
-                                        holder=holder, extra=extra).items() if v is not None}
+                                        holder=holder, owner_type=owner_type, extra=extra).items() if v is not None}
         try:
             case = store.update_case(case_id, actor=ACTOR, **fields)
         except (KeyError, ValueError) as exc:
@@ -354,9 +365,28 @@ def make_tools(settings: Settings, store: Store) -> list:
                               status="qualified" if score >= 300 and case["status"] == "new" else case["status"])
         return _j(res)
 
+    @beta_tool
+    def parcel_lookup(county: str, parcel_id: str, state: str = "FL") -> str:
+        """Look up a parcel on the county's public GIS roll (owner of record, mailing address, sale
+        history) as JSON. Use this FIRST for skip tracing in counties that have it (currently: FL Lee)
+        instead of the property appraiser website, which blocks automation. Remember: after a tax deed
+        sale the roll shows the NEW owner; the former owner is in the sale history and the deed index.
+
+        Args:
+            county: County name, e.g. Lee.
+            parcel_id: Parcel / STRAP / folio as printed on the report; punctuation is normalized.
+            state: Two-letter state code (default FL).
+        """
+        try:
+            return _j(parcels.lookup(state, county, parcel_id))
+        except KeyError as exc:
+            return f"Error: {exc}"
+        except Exception as exc:
+            return f"Error querying parcel service: {exc}"
+
     return [get_state_rules, economics, compliance_check, save_lead, list_cases, get_case, update_case,
             add_note, add_contact, add_source, list_sources, render_document, build_claim_packet, fetch_url,
-            import_report]
+            import_report, parcel_lookup]
 
 
 SERVER_TOOLS: list[dict[str, Any]] = [

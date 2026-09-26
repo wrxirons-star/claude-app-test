@@ -7,6 +7,8 @@
     {"county": "Lee", "kind": "portal", "url": "https://www.leeclerk.org/departments/courts/property-sales/tax-deed-sales", "notes": "Tax deed sales page; 'View Tax Deed Files (RealTDM)' under Related Links opens each case file, including the Notice of Surplus and mailing addresses."},
     {"county": "Lee", "kind": "forms", "url": "https://www.leeclerk.org/home/showpublisheddocument?id=556", "notes": "Affidavit of Claim for Tax Deed Sale Surplus Funds. Must be notarized with a copy of current government photo ID showing address and date of birth. Questions: taxdeedsurplus@leeclerk.org."},
     {"county": "Lee", "kind": "forms", "url": "https://www.leeclerk.org/services/forms-library", "notes": "Forms library."},
+    {"county": "Lee", "kind": "appraiser", "url": "https://services2.arcgis.com/LvWGAAhHwbCJ2GMP/arcgis/rest/services/Lee_County_Parcels/FeatureServer/0/query", "notes": "Lee County parcels GIS layer (JSON). Use the parcel_lookup tool. STRAP without punctuation. leepa.org's parcel pages block automation."},
+    {"county": "Lee", "kind": "portal", "url": "https://lee.realtdm.com/public/cases/list", "notes": "RealTDM tax deed case files (Notice of Surplus, title search, claim status). Search form needs a browser session; open by hand."},
     {"county": "Pasco", "kind": "list", "url": "https://www.pascoclerk.com/839/Tax-Deed-Surplus", "notes": "Tax deed surplus page with claim procedure and 120-day rule."},
     {"county": "Brevard", "kind": "list", "url": "https://www.brevardclerk.us/tax-deed-surplus", "notes": "Tax deed surplus listing."},
     {"county": "Brevard", "kind": "list", "url": "https://www.brevardclerk.us/unclaimed-funds", "notes": "Unclaimed funds including registry of court."},
