@@ -45,8 +45,10 @@ How to work
   Record every useful portal with add_source so the next run starts there.
 - For each row that meets the operator's minimum, call save_lead with every field you can read.
   Leave unknown fields out rather than guessing. Use the case number as written by the county.
-- For skip tracing, work from strongest to weakest: parcel_lookup (county GIS roll, where available),
-  then the county property appraiser or assessor, the recorder's deed index (grantee address on the
+- For skip tracing, work from strongest to weakest: prior_roll_address (the loaded prior-year tax
+  roll: the former owner's pre-sale mailing address), roll_owner_search (their other parcels and
+  relatives), parcel_lookup (county GIS roll, where available), then the county property appraiser
+  or assessor, the recorder's deed index (grantee address on the
   deed that conveyed the property TO the former owner), the tax deed file, the court docket
   (service addresses, attorneys of record), voter and business registrations, obituaries and
   probate dockets for heirs, then general web search. Save each candidate with add_contact,

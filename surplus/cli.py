@@ -11,6 +11,7 @@
     surplus note 12 "spoke to clerk; amount confirmed"
     surplus set 12 status=contacting next_action="mail letter"
     surplus fetch URL [--links]       download a county PDF or page and print its text
+    surplus roll load NAL.zip --county Lee --year 2025   index a prior-year tax roll for skip tracing
     surplus draft 12 intro_letter     render a document (no API call)
     surplus packet 12                 build the packet folder (no API call)
     surplus find FL --county Sumter   agent: discover and save leads
@@ -184,6 +185,21 @@ def cmd_fetch(args, settings, store):
     print(f.text if not args.links else "\n".join(f"{l}\t{u}" for l, u in f.links))
 
 
+def cmd_roll(args, settings, store):
+    from .roll import load_roll, normalize_parcel
+    if args.roll_cmd == "load":
+        res = load_roll(store, args.source, args.state.upper(), args.county, args.year, settings.home / "downloads")
+        print(f"Loaded {res['rows']:,} rows for {res['state']} {res['county']} {res['year']} from {res['files']} file(s)")
+    elif args.roll_cmd == "years":
+        for r in store.roll_years(args.state, args.county):
+            print(f"{r['state']} {r['county']:<12} {r['year']} {r['rows']:>9,} rows")
+    elif args.roll_cmd == "lookup":
+        rows = store.roll_lookup(args.state.upper(), args.county, normalize_parcel(args.parcel), args.year)
+        print(json.dumps(rows, indent=2) if rows else "No match.")
+    elif args.roll_cmd == "owner":
+        print(json.dumps(store.roll_owner_search(args.state.upper(), args.county, args.name), indent=2))
+
+
 def cmd_sources(args, settings, store):
     rows = store.sources(args.state or settings.operator.active_states[0], args.county)
     for r in rows:
@@ -322,6 +338,17 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("fetch", help="download a URL (PDF or page) from this computer and print its text")
     s.add_argument("url"); s.add_argument("--links", action="store_true", help="print links instead of text")
     s.set_defaults(fn=cmd_fetch)
+    s = sub.add_parser("roll", help="prior-year tax roll: load / years / lookup / owner")
+    rs = s.add_subparsers(dest="roll_cmd", required=True)
+    r = rs.add_parser("load", help="load a Florida NAL zip/csv (URL or file)")
+    r.add_argument("source"); r.add_argument("--state", default="FL"); r.add_argument("--county", required=True)
+    r.add_argument("--year", type=int, required=True)
+    r = rs.add_parser("years", help="list loaded rolls"); r.add_argument("--state"); r.add_argument("--county")
+    r = rs.add_parser("lookup", help="look a parcel up"); r.add_argument("parcel"); r.add_argument("--state", default="FL")
+    r.add_argument("--county", required=True); r.add_argument("--year", type=int)
+    r = rs.add_parser("owner", help="search owners by name fragment"); r.add_argument("name")
+    r.add_argument("--state", default="FL"); r.add_argument("--county", required=True)
+    s.set_defaults(fn=cmd_roll)
     s = sub.add_parser("sources", help="list known public-record sources"); s.add_argument("--state"); s.add_argument("--county")
     s.set_defaults(fn=cmd_sources)
     s = sub.add_parser("show", help="show one case"); s.add_argument("case_id", type=int); s.set_defaults(fn=cmd_show)

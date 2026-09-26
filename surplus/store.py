@@ -99,6 +99,27 @@ CREATE TABLE IF NOT EXISTS documents (
   path TEXT NOT NULL,
   compliance TEXT NOT NULL DEFAULT '{}'
 );
+CREATE TABLE IF NOT EXISTS roll (
+  id INTEGER PRIMARY KEY,
+  state TEXT NOT NULL,
+  county TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  parcel_norm TEXT NOT NULL,
+  parcel_raw TEXT,
+  owner TEXT,
+  addr1 TEXT,
+  addr2 TEXT,
+  city TEXT,
+  st TEXT,
+  zip TEXT,
+  phy_addr TEXT,
+  phy_city TEXT,
+  sale_prc1 TEXT,
+  sale_yr1 TEXT,
+  sale_mo1 TEXT
+);
+CREATE INDEX IF NOT EXISTS roll_parcel ON roll(state, county, parcel_norm, year);
+CREATE INDEX IF NOT EXISTS roll_owner ON roll(state, county, owner);
 CREATE TABLE IF NOT EXISTS audit (
   id INTEGER PRIMARY KEY,
   created_at TEXT NOT NULL,
@@ -319,6 +340,36 @@ class Store:
             self.add_source(state, src["url"], src["kind"], src.get("county"), src.get("notes"), actor=actor)
             n += 1
         return n
+
+    # -- tax roll ------------------------------------------------------------
+    def insert_roll_rows(self, rows: list[tuple]) -> None:
+        self.conn.executemany(
+            "INSERT INTO roll (state, county, year, parcel_norm, parcel_raw, owner, addr1, addr2, city, st, zip, "
+            "phy_addr, phy_city, sale_prc1, sale_yr1, sale_mo1) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+
+    def roll_years(self, state: str | None = None, county: str | None = None) -> list[dict[str, Any]]:
+        where, params = [], []
+        if state:
+            where.append("state=?"); params.append(state.upper())
+        if county:
+            where.append("LOWER(county)=LOWER(?)"); params.append(county)
+        sql = "SELECT state, county, year, COUNT(*) AS rows FROM roll"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        return [dict(r) for r in self.conn.execute(
+            sql + " GROUP BY state, county, year ORDER BY state, county, year", params).fetchall()]
+
+    def roll_lookup(self, state: str, county: str, parcel_norm: str, year: int | None = None) -> list[dict[str, Any]]:
+        sql = "SELECT * FROM roll WHERE state=? AND LOWER(county)=LOWER(?) AND parcel_norm=?"
+        params: list[Any] = [state.upper(), county, parcel_norm]
+        if year:
+            sql += " AND year=?"; params.append(year)
+        return [dict(r) for r in self.conn.execute(sql + " ORDER BY year DESC", params).fetchall()]
+
+    def roll_owner_search(self, state: str, county: str, name_fragment: str, limit: int = 25) -> list[dict[str, Any]]:
+        return [dict(r) for r in self.conn.execute(
+            "SELECT * FROM roll WHERE state=? AND LOWER(county)=LOWER(?) AND owner LIKE ? ORDER BY year DESC LIMIT ?",
+            (state.upper(), county, f"%{name_fragment.upper()}%", limit)).fetchall()]
 
     # -- bulk ----------------------------------------------------------------
     def import_rows(self, rows: Iterable[dict[str, Any]], actor: str = "import") -> tuple[int, int, list[int]]:

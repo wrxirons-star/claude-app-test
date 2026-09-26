@@ -13,6 +13,7 @@ from .config import Settings
 from .documents import DOC_TYPES, render
 from .fetch import fetch
 from . import parcels
+from .roll import normalize_parcel
 from .packet import build_packet
 from .rules import RuleError, check_agreement, compute_economics, load_rules, normalize_state
 from .scoring import classify_owner, score_case
@@ -384,9 +385,54 @@ def make_tools(settings: Settings, store: Store) -> list:
         except Exception as exc:
             return f"Error querying parcel service: {exc}"
 
+    @beta_tool
+    def prior_roll_address(county: str, parcel_id: str, state: str = "FL", year: int | None = None) -> str:
+        """Return the owner name and MAILING address for a parcel from the county's prior-year tax
+        roll that the operator has loaded (Florida NAL files). For a tax deed case, the roll for the
+        year before the sale shows where the former owner's tax bills were mailed: usually the best
+        pre-sale address. Use this before any web searching. If no roll is loaded, the result says
+        which years exist and how to load one.
+
+        Args:
+            county: County name, e.g. Lee.
+            parcel_id: Parcel / STRAP as printed; punctuation is ignored.
+            state: Two-letter state code (default FL).
+            year: Roll year to read; omit for every loaded year, newest first.
+        """
+        years = store.roll_years(state, county)
+        if not years:
+            return (f"No tax roll loaded for {state} {county}. Ask the operator to run: "
+                    f"surplus roll load <NAL zip or csv URL/path> --state {state} --county {county} --year <YYYY>")
+        rows = store.roll_lookup(state, county, normalize_parcel(parcel_id), year)
+        if not rows:
+            return _j({"matches": 0, "loaded_years": [y["year"] for y in years],
+                       "hint": "Parcel not in the loaded roll(s); check the parcel id or load the year before the sale."})
+        slim = [{k: r.get(k) for k in ("year", "parcel_raw", "owner", "addr1", "addr2", "city", "st", "zip",
+                                        "phy_addr", "phy_city", "sale_yr1", "sale_mo1", "sale_prc1")} for r in rows]
+        return _j({"matches": len(rows), "rows": slim,
+                   "note": "If the mailing address equals the property address, the owner lived there before the sale "
+                           "and has since moved; look for a forwarding address, the deed grantee address, or relatives."})
+
+    @beta_tool
+    def roll_owner_search(county: str, name_fragment: str, state: str = "FL") -> str:
+        """Search the loaded prior-year tax roll for other parcels owned by a name fragment, to find
+        a former owner's OTHER property (often where they now live) or relatives with the same surname.
+
+        Args:
+            county: County name.
+            name_fragment: Part of the owner name as it appears on the roll, e.g. "WEST MARTIN".
+            state: Two-letter state code (default FL).
+        """
+        rows = store.roll_owner_search(state, county, name_fragment)
+        if not rows and not store.roll_years(state, county):
+            return f"No tax roll loaded for {state} {county}."
+        slim = [{k: r.get(k) for k in ("year", "parcel_raw", "owner", "addr1", "addr2", "city", "st", "zip",
+                                        "phy_addr", "phy_city")} for r in rows]
+        return _j({"matches": len(rows), "rows": slim})
+
     return [get_state_rules, economics, compliance_check, save_lead, list_cases, get_case, update_case,
             add_note, add_contact, add_source, list_sources, render_document, build_claim_packet, fetch_url,
-            import_report, parcel_lookup]
+            import_report, parcel_lookup, prior_roll_address, roll_owner_search]
 
 
 SERVER_TOOLS: list[dict[str, Any]] = [
