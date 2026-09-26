@@ -10,6 +10,7 @@ from __future__ import annotations
 import html
 import io
 import re
+import ssl
 import urllib.request
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -69,9 +70,27 @@ class _TextAndLinks(HTMLParser):
             self._label.append(data)
 
 
+def ssl_context() -> ssl.SSLContext:
+    """Use the operating system's trust store. python.org's macOS installer ships
+    Python without root certificates, so the default context fails on every
+    HTTPS site until the user runs 'Install Certificates.command'. truststore
+    (a dependency of the Anthropic SDK) reads the OS keychain instead; certifi
+    is the fallback."""
+    try:
+        import truststore
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except ImportError:
+        pass
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 def _download(url: str, timeout: int = 60) -> tuple[bytes, str, str]:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as resp:
         data = resp.read(MAX_BYTES + 1)
         if len(data) > MAX_BYTES:
             raise ValueError(f"Document larger than {MAX_BYTES // (1024 * 1024)} MB")

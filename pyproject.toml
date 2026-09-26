@@ -11,6 +11,8 @@ requires-python = ">=3.10"
 dependencies = [
     "anthropic>=1.4.0",
     "pypdf>=4",
+    "truststore>=0.10",
+    "certifi",
 ]
 
 [project.optional-dependencies]

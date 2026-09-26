@@ -74,3 +74,11 @@ def test_fetch_url_tool_pages(env, server):
 def test_html_text_helper():
     text, links = html_text(b"<p>Hi &amp; bye</p><a href='x.pdf'>X</a>", "https://e.org/a/")
     assert "Hi & bye" in text and links == [("X", "https://e.org/a/x.pdf")]
+
+
+def test_ssl_context_uses_os_trust_store():
+    import ssl
+    from surplus.fetch import ssl_context
+    ctx = ssl_context()
+    assert isinstance(ctx, ssl.SSLContext)
+    assert ctx.verify_mode == ssl.CERT_REQUIRED
