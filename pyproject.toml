@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+browser = ["playwright>=1.45"]
 
 [project.scripts]
 surplus = "surplus.cli:main"

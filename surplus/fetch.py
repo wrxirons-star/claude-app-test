@@ -11,6 +11,7 @@ import html
 import io
 import re
 import ssl
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -88,13 +89,103 @@ def ssl_context() -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
+BROWSER_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+
+class Forbidden(Exception):
+    pass
+
+
+def _download_urllib(url: str, timeout: int) -> tuple[bytes, str, str]:
+    req = urllib.request.Request(url, headers=BROWSER_HEADERS)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as resp:
+            data = resp.read(MAX_BYTES + 1)
+            return data, resp.headers.get("Content-Type", ""), resp.geturl()
+    except urllib.error.HTTPError as exc:
+        if exc.code in (403, 406, 429, 503):
+            raise Forbidden(f"HTTP {exc.code}") from exc
+        raise
+
+
+def _download_curl(url: str, timeout: int) -> tuple[bytes, str, str]:
+    import shutil
+    import subprocess
+    import tempfile
+
+    curl = shutil.which("curl")
+    if not curl:
+        raise Forbidden("curl not available")
+    with tempfile.TemporaryDirectory() as td:
+        hdr = Path(td) / "h"
+        args = [curl, "-sSL", "--max-time", str(timeout), "-D", str(hdr), "-o", "-", "--compressed",
+                "-w", "\n%{url_effective}"]
+        for k, v in BROWSER_HEADERS.items():
+            args += ["-H", f"{k}: {v}"]
+        args.append(url)
+        proc = subprocess.run(args, capture_output=True, timeout=timeout + 10)
+        if proc.returncode != 0:
+            raise Forbidden(f"curl failed: {proc.stderr.decode(errors='replace')[:200]}")
+        body, _, effective = proc.stdout.rpartition(b"\n")
+        headers = hdr.read_text(errors="replace")
+        status = [l for l in headers.splitlines() if l.startswith("HTTP/")]
+        if status and status[-1].split()[1] in ("403", "406", "429", "503"):
+            raise Forbidden(f"curl got {status[-1]}")
+        ctype = ""
+        for line in headers.splitlines():
+            if line.lower().startswith("content-type:"):
+                ctype = line.split(":", 1)[1].strip()
+        return body, ctype, effective.decode(errors="replace").strip() or url
+
+
+def _download_playwright(url: str, timeout: int) -> tuple[bytes, str, str]:
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise Forbidden("playwright not installed (pip install playwright && playwright install chromium)")
+    from urllib.parse import urlsplit
+
+    root = "{0.scheme}://{0.netloc}/".format(urlsplit(url))
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        ctx = browser.new_context(user_agent=USER_AGENT, accept_downloads=True)
+        page = ctx.new_page()
+        try:
+            page.goto(root, wait_until="domcontentloaded", timeout=timeout * 1000)
+            page.wait_for_timeout(2500)  # let any bot-check script settle
+            resp = ctx.request.get(url, timeout=timeout * 1000, headers={"Accept": BROWSER_HEADERS["Accept"]})
+            if resp.status in (403, 406, 429, 503):
+                raise Forbidden(f"browser got HTTP {resp.status}")
+            return resp.body(), resp.headers.get("content-type", ""), resp.url
+        finally:
+            browser.close()
+
+
 def _download(url: str, timeout: int = 60) -> tuple[bytes, str, str]:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
-    with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as resp:
-        data = resp.read(MAX_BYTES + 1)
-        if len(data) > MAX_BYTES:
-            raise ValueError(f"Document larger than {MAX_BYTES // (1024 * 1024)} MB")
-        return data, resp.headers.get("Content-Type", ""), resp.geturl()
+    """Local file, then urllib, then curl, then a headless browser."""
+    if url.startswith("file://") or (not url.startswith("http") and Path(url).expanduser().exists()):
+        path = Path(url[7:] if url.startswith("file://") else url).expanduser()
+        data = path.read_bytes()
+        ctype = "application/pdf" if path.suffix.lower() == ".pdf" else "text/html" if path.suffix.lower() in (".htm", ".html") else "text/plain"
+        return data, ctype, str(path)
+    errors = []
+    for fn in (_download_urllib, _download_curl, _download_playwright):
+        try:
+            data, ctype, final = fn(url, timeout)
+            if len(data) > MAX_BYTES:
+                raise ValueError(f"Document larger than {MAX_BYTES // (1024 * 1024)} MB")
+            return data, ctype, final
+        except Forbidden as exc:
+            errors.append(f"{fn.__name__}: {exc}")
+    raise Forbidden("Site refused scripted access. Tried " + "; ".join(errors) +
+                    ". Install a headless browser (pip install playwright && playwright install chromium), "
+                    "or open the URL in your browser, save the file, and pass its path to fetch instead.")
 
 
 def pdf_text(data: bytes, max_pages: int = 200) -> str:

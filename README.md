@@ -105,7 +105,7 @@ tests/           33 tests, no network
 ## Design notes
 
 - **Model**: `claude-opus-5` with adaptive thinking and `effort=high`. Set `SURPLUS_EFFORT=xhigh` for hard skip-traces, `low` for cheap list scraping.
-- **Web tools** are Anthropic's server-side `web_search` and `web_fetch` for discovery, plus a client-side `fetch_url` tool that downloads from your own computer. County PDF reports, spreadsheets, and RealTDM portals are usually blocked to the server-side fetcher; `fetch_url` opens them and converts PDFs to text. `surplus fetch URL` does the same from the command line.
+- **Web tools** are Anthropic's server-side `web_search` and `web_fetch` for discovery, plus a client-side `fetch_url` tool that downloads from your own computer. County PDF reports, spreadsheets, and RealTDM portals are usually blocked to the server-side fetcher; `fetch_url` opens them and converts PDFs to text. `surplus fetch URL` does the same from the command line, and also accepts a local file path. Sites with bot protection return 403 to scripts; `fetch_url` then retries through `curl` and, if installed, a headless Chrome (`pip install playwright && playwright install chromium`).
 - **Sources are remembered.** Every portal, list, docket, or form page the agent finds is saved to the `sources` table and fed back into the next run's prompt.
 - **Refusal fallbacks** are on (`fallbacks="default"`), so a safety-classifier decline is retried server-side on a fallback model instead of ending the run.
 - **Audit log.** Every create, update, note, contact, and document is written to the `audit` table with an actor (`cli` or `agent`).

@@ -25,6 +25,8 @@ def server():
             pass
 
         def do_GET(self):
+            if self.path.startswith("/forbidden"):
+                self.send_response(403); self.end_headers(); return
             if self.path.startswith("/report.pdf"):
                 body, ctype = pdf, "application/pdf"
             elif self.path.startswith("/showpublisheddocument/11509"):
@@ -82,3 +84,21 @@ def test_ssl_context_uses_os_trust_store():
     ctx = ssl_context()
     assert isinstance(ctx, ssl.SSLContext)
     assert ctx.verify_mode == ssl.CERT_REQUIRED
+
+
+def test_local_file_path(tmp_path):
+    pdf = tmp_path / "list.pdf"
+    pdf.write_bytes(_pdf_bytes())
+    f = fetch(str(pdf))
+    assert f.kind == "pdf" and "--- page 1 ---" in f.text
+    f2 = fetch("file://" + str(pdf))
+    assert f2.kind == "pdf"
+
+
+def test_forbidden_falls_through_with_clear_message(server, tmp_path, monkeypatch):
+    import surplus.fetch as fm
+    monkeypatch.setattr(fm, "_download_curl", lambda u, t: (_ for _ in ()).throw(fm.Forbidden("curl got 403")))
+    monkeypatch.setattr(fm, "_download_playwright", lambda u, t: (_ for _ in ()).throw(fm.Forbidden("no browser")))
+    with pytest.raises(fm.Forbidden) as exc:
+        fetch(server + "/forbidden", save_dir=tmp_path)
+    assert "refused scripted access" in str(exc.value) and "playwright" in str(exc.value)
