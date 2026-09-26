@@ -2,7 +2,8 @@
   "state": "FL",
   "note": "Seed sources loaded by `surplus init`. URLs came from search results on 2026-09-07 and 2026-09-26; the agent re-verifies them on first use.",
   "sources": [
-    {"county": "Lee", "kind": "list", "url": "https://www.leeclerk.org/departments/courts/property-sales/tax-deed-sales/tax-deed-reports", "notes": "Tax Deed Surplus Weekly Report. Balances exclude pending claims and clerk fees. Unclaimed surplus goes to the state about 1 to 2 years after the sale."},
+    {"county": "Lee", "kind": "list", "url": "https://www.leeclerk.org/home/showpublisheddocument/11509", "notes": "Tax Deed Surplus Weekly Report PDF (direct). Parser available: use import_report. Columns: tax deed no, sale date, balance, balance date, address, parcel, owner, lienholder claim expires (= notice + 120 days)."},
+    {"county": "Lee", "kind": "portal", "url": "https://www.leeclerk.org/departments/courts/property-sales/tax-deed-sales/tax-deed-reports", "notes": "Reports landing page; links to the weekly surplus PDF and the list of funds already sent to the state. Site blocks scripts; fetch_url uses a browser."},
     {"county": "Lee", "kind": "portal", "url": "https://www.leeclerk.org/departments/courts/property-sales/tax-deed-sales", "notes": "Tax deed sales page; 'View Tax Deed Files (RealTDM)' under Related Links opens each case file, including the Notice of Surplus and mailing addresses."},
     {"county": "Lee", "kind": "forms", "url": "https://www.leeclerk.org/home/showpublisheddocument?id=556", "notes": "Affidavit of Claim for Tax Deed Sale Surplus Funds. Must be notarized with a copy of current government photo ID showing address and date of birth. Questions: taxdeedsurplus@leeclerk.org."},
     {"county": "Lee", "kind": "forms", "url": "https://www.leeclerk.org/services/forms-library", "notes": "Forms library."},

@@ -90,12 +90,15 @@ def compute_economics(
     tx_purchase_fraction: float = 0.80,
     has_attorney: bool = False,
     today: date | None = None,
+    listed_date: str | date | None = None,
 ) -> Economics:
     """Work out what a lead is worth and when it can be acted on.
 
     ``deposit_date`` is when the funds hit the registry/escrow (defaults to the
     sale date). ``notice_date`` is the Florida tax-deed Notice of Surplus mail
-    date, which starts that 120-day clock.
+    date, which starts that 120-day clock. ``listed_date`` is the date the lead
+    was seen on the holder's current report: proof the money is still there,
+    which overrides a computed remittance deadline that has already passed.
     """
     state = normalize_state(state)
     sale_type = sale_type or DEFAULT_SALE_TYPE[state]
@@ -104,6 +107,7 @@ def compute_economics(
     sale = parse_date(sale_date)
     deposit = parse_date(deposit_date) or sale
     notice = parse_date(notice_date)
+    listed = parse_date(listed_date)
     amount = float(surplus_amount or 0)
     fee_policy = fee_policy or {}
     warnings: list[str] = []
@@ -188,6 +192,18 @@ def compute_economics(
                     warnings.append("No Notice of Surplus date known; ask the clerk for the mail date to place "
                                     "this lead on the 120-day clock.")
 
+    if listed and deadline and deadline <= listed:
+        # The holder's own report shows the funds still on account after the
+        # computed remittance date, so the real cutoff is the next sweep.
+        if state == "FL":
+            deadline = _next_may_first(listed)
+            unclaimed = deadline
+            warnings.append(f"On the clerk's report as of {listed.isoformat()}; funds still held. "
+                            f"Florida clerks remit unclaimed surplus in spring sweeps, so treat "
+                            f"{deadline.isoformat()} as the working deadline and file well before it.")
+        else:
+            deadline = None
+            warnings.append(f"On the holder's report as of {listed.isoformat()}; computed deadline overridden.")
     if earliest and earliest > today:
         warnings.append(f"Do not sign an agreement before {earliest.isoformat()}.")
     if deadline and deadline < today:
@@ -211,6 +227,11 @@ def compute_economics(
         warnings=warnings,
         citations=list(r.get("citations", [])),
     )
+
+
+def _next_may_first(d: date) -> date:
+    candidate = date(d.year, 5, 1)
+    return candidate if candidate > d else date(d.year + 1, 5, 1)
 
 
 def _add_months(d: date, months: int) -> date:

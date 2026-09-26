@@ -328,8 +328,35 @@ def make_tools(settings: Settings, store: Store) -> list:
             out += [f"- {l or '(no label)'}: {u}" for l, u in shown]
         return "\n".join(out)
 
+    @beta_tool
+    def import_report(county: str, source_url: str, min_amount: float = 0, state: str = "FL") -> str:
+        """Fetch a county's surplus report and import every row with the county-specific parser in one
+        call. Use this FIRST for any county that has a parser (currently: FL Lee) instead of reading the
+        report and calling save_lead row by row. Returns counts and the case ids created or updated.
+
+        Args:
+            county: County name, e.g. Lee.
+            source_url: URL of the report file (PDF) or landing page link to it.
+            min_amount: Skip rows below this surplus amount.
+            state: Two-letter state code (default FL).
+        """
+        from .cli import import_report as _import_report
+        try:
+            res = _import_report(settings, store, state, county, source_url, min_amount)
+        except RuleError as exc:
+            return f"Error: {exc}"
+        except Exception as exc:
+            return f"Error fetching or parsing {source_url}: {exc}"
+        for cid in res["case_ids"]:
+            case = store.get_case(cid)
+            score, _ = score_case(case, op.fee_policy, op.tx_purchase_fraction, bool(op.attorney_name))
+            store.update_case(cid, actor=ACTOR, score=score,
+                              status="qualified" if score >= 300 and case["status"] == "new" else case["status"])
+        return _j(res)
+
     return [get_state_rules, economics, compliance_check, save_lead, list_cases, get_case, update_case,
-            add_note, add_contact, add_source, list_sources, render_document, build_claim_packet, fetch_url]
+            add_note, add_contact, add_source, list_sources, render_document, build_claim_packet, fetch_url,
+            import_report]
 
 
 SERVER_TOOLS: list[dict[str, Any]] = [

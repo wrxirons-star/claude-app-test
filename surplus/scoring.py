@@ -11,19 +11,20 @@ from typing import Any
 from .rules import RuleError, compute_economics
 
 
-ENTITY_MARKERS = (" LLC", " INC", " CORP", " TRUST", " BANK", " ASSOC", " LP", " LTD", " HOA",
-                  " MORTGAGE", " CAPITAL", " HOLDINGS", " PROPERTIES", " PARTNERS", " FUND", " N.A.")
+ENTITY_MARKERS = (" LLC", " INC", " CORP", " TRUST", " BANK", " ASSOC", " ASSOCIATION", " CONDO", " CONDOMINIUM",
+                  " LP", " LTD", " HOA", " MORTGAGE", " CAPITAL", " HOLDINGS", " PROPERTIES", " PARTNERS",
+                  " FUND", " N.A.", " GROUP", " COMPANY", " CO.", " ENTERPRISES", " INVESTMENTS")
 
 
 def classify_owner(name: str | None) -> str:
     if not name:
         return "unknown"
     n = f" {name.upper().strip()} "
-    if any(m + " " in n or n.endswith(m + " ") for m in ENTITY_MARKERS):
+    if any(m + " " in n or m + "," in n or n.endswith(m + " ") for m in ENTITY_MARKERS):
         return "entity"
     if "ESTATE OF" in n or "DECEASED" in n or " EST " in n:
         return "estate"
-    if " AND " in n or " & " in n or "/" in n:
+    if " AND " in n or " & " in n or "/" in n or "," in n.strip(", "):
         return "multiple"
     return "individual"
 
@@ -40,7 +41,7 @@ def score_case(case: dict[str, Any], fee_policy: dict[str, float] | None = None,
         econ = compute_economics(
             case["state"], amount, case.get("sale_date"), case.get("deposit_date"),
             case.get("notice_date"), case.get("sale_type"), fee_policy, tx_purchase_fraction,
-            has_attorney, today,
+            has_attorney, today, (case.get("extra") or {}).get("listed_date"),
         )
     except RuleError as exc:
         return 0.0, {"reason": str(exc)}

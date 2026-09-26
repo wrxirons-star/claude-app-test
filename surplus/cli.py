@@ -4,6 +4,7 @@
     surplus rules FL                  print the rulebook summary
     surplus fee TX 25000 --sale-date 2025-06-01
     surplus import leads.csv          bulk-load a county list you downloaded
+    surplus import-report URL --state FL --county Lee   fetch + parse a county report
     surplus score                     re-score every open case
     surplus cases [--state FL] [--status qualified]
     surplus show 12
@@ -106,8 +107,38 @@ def cmd_import(args, settings, store):
                 "source_url": row.get("source_url") or args.source_url,
                 "extra": {"import_file": str(path)},
             })
-    created, updated = store.import_rows(rows)
+    created, updated, _ = store.import_rows(rows)
     print(f"Imported {created} new, {updated} updated from {path}")
+    _rescore(settings, store)
+
+
+def import_report(settings, store, state: str, county: str, source: str, min_amount: float = 0.0) -> dict:
+    """Fetch a county report (URL or local file), parse it, and upsert the rows."""
+    from .fetch import fetch
+    from .parsers import available, get_parser
+    from .scoring import classify_owner
+
+    parser = get_parser(state, county)
+    if parser is None:
+        raise RuleError(f"No report parser for {state} {county}. Available: {', '.join(available())}")
+    f = fetch(source, save_dir=settings.home / "downloads")
+    rows = parser(f.text, f.final_url if source.startswith("http") else source)
+    total = len(rows)
+    rows = [r for r in rows if (r.get("surplus_amount") or 0) >= min_amount]
+    for r in rows:
+        r["owner_type"] = classify_owner(r.get("owner_name"))
+    created, updated, ids = store.import_rows(rows, actor="import-report")
+    store.add_source(state, source if source.startswith("http") else f"file://{source}", "list", county,
+                     f"Parsed {total} rows on {rows[0]['extra']['listed_date'] if rows else 'n/a'}", actor="import-report")
+    return {"rows_in_report": total, "rows_at_or_above_minimum": len(rows), "created": created,
+            "updated": updated, "case_ids": ids, "saved_file": f.saved_to}
+
+
+def cmd_import_report(args, settings, store):
+    _require_active(settings, [args.state.upper()])
+    res = import_report(settings, store, args.state.upper(), args.county, args.source, args.min_amount)
+    print(f"Report rows: {res['rows_in_report']}, at/above ${args.min_amount:,.0f}: {res['rows_at_or_above_minimum']}, "
+          f"new: {res['created']}, updated: {res['updated']}")
     _rescore(settings, store)
 
 
@@ -273,6 +304,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("file"); s.add_argument("--state", required=True); s.add_argument("--county", required=True)
     s.add_argument("--sale-type", required=True, choices=["mortgage_foreclosure", "tax_deed", "tax_sale"])
     s.add_argument("--source-url"); s.set_defaults(fn=cmd_import)
+    s = sub.add_parser("import-report", help="fetch and parse a county surplus report (URL or file)")
+    s.add_argument("source", help="report URL or local PDF path"); s.add_argument("--state", required=True)
+    s.add_argument("--county", required=True); s.add_argument("--min-amount", type=float, default=0)
+    s.set_defaults(fn=cmd_import_report)
     s = sub.add_parser("score", help="re-score open cases"); s.set_defaults(fn=cmd_score)
     s = sub.add_parser("cases", help="list cases")
     s.add_argument("--state"); s.add_argument("--status", choices=CASE_STATUSES); s.add_argument("--county")

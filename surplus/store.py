@@ -315,10 +315,12 @@ class Store:
         return n
 
     # -- bulk ----------------------------------------------------------------
-    def import_rows(self, rows: Iterable[dict[str, Any]], actor: str = "import") -> tuple[int, int]:
+    def import_rows(self, rows: Iterable[dict[str, Any]], actor: str = "import") -> tuple[int, int, list[int]]:
         created = updated = 0
+        ids: list[int] = []
         for row in rows:
-            _, was_created = self.upsert_case(actor=actor, **row)
+            cid, was_created = self.upsert_case(actor=actor, **row)
+            ids.append(cid)
             created += was_created
             updated += not was_created
-        return created, updated
+        return created, updated, ids

@@ -80,8 +80,10 @@ Known sources for this area from previous runs:
 
 {lane_note}
 Steps:
-0. If a known source of kind "list" exists above, call fetch_url on it first. On a landing page, read the
-   Links section of the result to find the actual report file, then fetch_url that.
+0. If a report parser exists for this county (FL Lee today), call import_report with the report URL and the
+   minimum amount; it fetches, parses, and saves every row. Then go to step 3. Otherwise, if a known source
+   of kind "list" exists above, call fetch_url on it first. On a landing page, read the Links section of the
+   result to find the actual report file, then fetch_url that.
 1. If there is no known list URL, search for the county's surplus / excess proceeds / tax deed surplus
    page (clerk of court for Florida, district clerk for Texas, tax commissioner for Georgia). Record
    each real portal or list URL with add_source (kind: "list", "portal", "docket", or "forms").

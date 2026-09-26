@@ -152,7 +152,8 @@ def render(settings: Settings, store: Store, case_id: int, doc_type: str,
     has_attorney = bool(op.attorney_name)
     econ = compute_economics(state, case.get("surplus_amount") or 0, case.get("sale_date"),
                              case.get("deposit_date"), case.get("notice_date"), sale_type,
-                             op.fee_policy, op.tx_purchase_fraction, has_attorney, today)
+                             op.fee_policy, op.tx_purchase_fraction, has_attorney, today,
+                             (case.get("extra") or {}).get("listed_date"))
     channel = (case.get("extra") or {}).get("contact_channel")
     fee_for_check = None if econ.model == "claim_purchase" else econ.fee_fraction_applied
     check = check_agreement(state, sale_type, fee_for_check, econ.surplus_amount,
