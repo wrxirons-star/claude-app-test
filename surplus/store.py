@@ -200,8 +200,14 @@ class Store:
         min_amount: float | None = None,
         limit: int = 50,
         order: str = "score DESC, surplus_amount DESC",
+        owner_type: str | None = None,
+        sale_after: str | None = None,
     ) -> list[dict[str, Any]]:
         where, params = [], []
+        if owner_type:
+            where.append("owner_type=?"); params.append(owner_type)
+        if sale_after:
+            where.append("sale_date>=?"); params.append(sale_after)
         if state:
             where.append("state=?"); params.append(state.upper())
         if status:

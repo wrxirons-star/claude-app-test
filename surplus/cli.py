@@ -162,7 +162,8 @@ def cmd_score(args, settings, store):
 
 
 def cmd_cases(args, settings, store):
-    rows = store.list_cases(args.state, args.status, args.county, args.min_amount, args.limit)
+    rows = store.list_cases(args.state, args.status, args.county, args.min_amount, args.limit,
+                            owner_type=args.owner_type, sale_after=args.sale_after)
     if not rows:
         print("No cases.")
         return
@@ -311,7 +312,10 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("score", help="re-score open cases"); s.set_defaults(fn=cmd_score)
     s = sub.add_parser("cases", help="list cases")
     s.add_argument("--state"); s.add_argument("--status", choices=CASE_STATUSES); s.add_argument("--county")
-    s.add_argument("--min-amount", type=float); s.add_argument("--limit", type=int, default=50); s.set_defaults(fn=cmd_cases)
+    s.add_argument("--min-amount", type=float); s.add_argument("--limit", type=int, default=50)
+    s.add_argument("--owner-type", choices=["individual", "multiple", "estate", "entity", "unknown"])
+    s.add_argument("--sale-after", help="ISO date; only sales on or after it")
+    s.set_defaults(fn=cmd_cases)
     s = sub.add_parser("fetch", help="download a URL (PDF or page) from this computer and print its text")
     s.add_argument("url"); s.add_argument("--links", action="store_true", help="print links instead of text")
     s.set_defaults(fn=cmd_fetch)

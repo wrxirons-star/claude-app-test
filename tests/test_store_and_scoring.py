@@ -97,3 +97,12 @@ def test_seed_sources_is_idempotent(env):
     assert len(store.sources("FL")) == n1
     assert any("leeclerk" in s["url"] for s in store.sources("FL", "Lee"))
     assert store.seed_sources("TX") == 0
+
+
+def test_list_filters_owner_type_and_sale_after(env):
+    _, store = env
+    store.upsert_case(state="FL", county="Lee", case_number="A", owner_type="individual", sale_date="2026-01-01")
+    store.upsert_case(state="FL", county="Lee", case_number="B", owner_type="entity", sale_date="2026-01-01")
+    store.upsert_case(state="FL", county="Lee", case_number="C", owner_type="individual", sale_date="2024-01-01")
+    assert {c["case_number"] for c in store.list_cases(owner_type="individual")} == {"A", "C"}
+    assert {c["case_number"] for c in store.list_cases(owner_type="individual", sale_after="2025-01-01")} == {"A"}
