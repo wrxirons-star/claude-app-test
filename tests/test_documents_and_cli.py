@@ -92,7 +92,11 @@ def test_cli_roundtrip(env, tmp_path, capsys):
     main(["fee", "TX", "25000", "--sale-date", "2025-06-01"])
     assert json.loads(capsys.readouterr().out)["model"] == "claim_purchase"
     main(["set", "1", "status=contacting", "extra.claimant_address=1 Elm St"])
-    assert json.loads(capsys.readouterr().out)["extra"]["claimant_address"] == "1 Elm St"
+    before = json.loads(capsys.readouterr().out)
+    assert before["extra"]["claimant_address"] == "1 Elm St"
+    main(["set", "1", "owner_type=estate"])
+    after = json.loads(capsys.readouterr().out)
+    assert after["score"] < before["score"]
     main(["draft", "1", "intro_letter", "--print"])
     assert "1 Elm St" in capsys.readouterr().out
     main(["rules", "GA"])

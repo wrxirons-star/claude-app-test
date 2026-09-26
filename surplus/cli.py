@@ -217,6 +217,9 @@ def cmd_set(args, settings, store):
     if extra:
         fields["extra"] = extra
     case = store.update_case(args.case_id, **fields)
+    op = settings.operator
+    score, _ = score_case(case, op.fee_policy, op.tx_purchase_fraction, bool(op.attorney_name))
+    case = store.update_case(args.case_id, score=score)
     print(json.dumps(case, indent=2, default=str))
 
 
