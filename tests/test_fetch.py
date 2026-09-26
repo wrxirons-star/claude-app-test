@@ -102,3 +102,13 @@ def test_forbidden_falls_through_with_clear_message(server, tmp_path, monkeypatc
     with pytest.raises(fm.Forbidden) as exc:
         fetch(server + "/forbidden", save_dir=tmp_path)
     assert "refused scripted access" in str(exc.value) and "playwright" in str(exc.value)
+
+
+def test_playwright_path_downloads_pdf_from_inside_page(server, tmp_path):
+    pytest.importorskip("playwright")
+    import surplus.fetch as fm
+    data, ctype, final = fm._download_playwright(server + "/showpublisheddocument/11509", timeout=30)
+    assert data[:5] == b"%PDF-"
+    assert final.endswith("/showpublisheddocument/11509")
+    html, ctype2, _ = fm._download_playwright(server + "/reports", timeout=30)
+    assert b"Tax Deed Reports" in html

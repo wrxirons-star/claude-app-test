@@ -144,25 +144,62 @@ def _download_curl(url: str, timeout: int) -> tuple[bytes, str, str]:
         return body, ctype, effective.decode(errors="replace").strip() or url
 
 
+_PAGE_FETCH_JS = """async (u) => {
+  const r = await fetch(u, {credentials: 'include', redirect: 'follow'});
+  const buf = new Uint8Array(await r.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+  }
+  return {status: r.status, ctype: r.headers.get('content-type') || '', url: r.url, data: btoa(bin)};
+}"""
+
+CHALLENGE_TITLES = ("just a moment", "attention required", "access denied", "checking your browser",
+                    "verify you are human", "one moment")
+
+
 def _download_playwright(url: str, timeout: int) -> tuple[bytes, str, str]:
+    """Drive a real Chrome tab. The request for the target file is issued from
+    inside the page with fetch(), so it carries Chrome's TLS/HTTP fingerprint
+    and any challenge cookies the site set on the landing page."""
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
         raise Forbidden("playwright not installed (pip install playwright && playwright install chromium)")
+    import base64
     from urllib.parse import urlsplit
 
     root = "{0.scheme}://{0.netloc}/".format(urlsplit(url))
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        ctx = browser.new_context(user_agent=USER_AGENT, accept_downloads=True)
+        import os
+        launch = dict(headless=True, args=["--disable-blink-features=AutomationControlled"])
+        exe = os.environ.get("SURPLUS_CHROME_PATH")  # override for unusual installs
+        if exe:
+            browser = p.chromium.launch(executable_path=exe, **launch)
+        else:
+            try:
+                browser = p.chromium.launch(channel="chromium", **launch)  # full Chrome, new headless mode
+            except Exception:
+                browser = p.chromium.launch(**launch)
+        ctx = browser.new_context(user_agent=USER_AGENT, locale="en-US", viewport={"width": 1366, "height": 900})
+        ctx.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         page = ctx.new_page()
         try:
             page.goto(root, wait_until="domcontentloaded", timeout=timeout * 1000)
-            page.wait_for_timeout(2500)  # let any bot-check script settle
-            resp = ctx.request.get(url, timeout=timeout * 1000, headers={"Accept": BROWSER_HEADERS["Accept"]})
-            if resp.status in (403, 406, 429, 503):
-                raise Forbidden(f"browser got HTTP {resp.status}")
-            return resp.body(), resp.headers.get("content-type", ""), resp.url
+            for _ in range(12):  # give a bot-check interstitial time to clear
+                if not any(t in (page.title() or "").lower() for t in CHALLENGE_TITLES):
+                    break
+                page.wait_for_timeout(1500)
+            page.wait_for_timeout(1000)
+            res = page.evaluate(_PAGE_FETCH_JS, url)
+            if res["status"] in (403, 406, 429, 503):
+                # Last resort: navigate to it directly and take the rendered HTML.
+                resp = page.goto(url, wait_until="domcontentloaded", timeout=timeout * 1000)
+                page.wait_for_timeout(1500)
+                if resp is None or resp.status in (403, 406, 429, 503):
+                    raise Forbidden(f"browser got HTTP {res['status']}")
+                return page.content().encode(), resp.headers.get("content-type", "text/html"), page.url
+            return base64.b64decode(res["data"]), res["ctype"], res["url"]
         finally:
             browser.close()
 
