@@ -1,0 +1,19 @@
+{
+  "state": "FL",
+  "note": "Seed sources loaded by `surplus init`. URLs came from search results on 2026-09-07 and 2026-09-26; the agent re-verifies them on first use.",
+  "sources": [
+    {"county": "Lee", "kind": "list", "url": "https://www.leeclerk.org/departments/courts/property-sales/tax-deed-sales/tax-deed-reports", "notes": "Tax Deed Surplus Weekly Report. Balances exclude pending claims and clerk fees. Unclaimed surplus goes to the state about 1 to 2 years after the sale."},
+    {"county": "Lee", "kind": "portal", "url": "https://www.leeclerk.org/departments/courts/property-sales/tax-deed-sales", "notes": "Tax deed sales page; 'View Tax Deed Files (RealTDM)' under Related Links opens each case file, including the Notice of Surplus and mailing addresses."},
+    {"county": "Lee", "kind": "forms", "url": "https://www.leeclerk.org/home/showpublisheddocument?id=556", "notes": "Affidavit of Claim for Tax Deed Sale Surplus Funds. Must be notarized with a copy of current government photo ID showing address and date of birth. Questions: taxdeedsurplus@leeclerk.org."},
+    {"county": "Lee", "kind": "forms", "url": "https://www.leeclerk.org/services/forms-library", "notes": "Forms library."},
+    {"county": "Pasco", "kind": "list", "url": "https://www.pascoclerk.com/839/Tax-Deed-Surplus", "notes": "Tax deed surplus page with claim procedure and 120-day rule."},
+    {"county": "Brevard", "kind": "list", "url": "https://www.brevardclerk.us/tax-deed-surplus", "notes": "Tax deed surplus listing."},
+    {"county": "Brevard", "kind": "list", "url": "https://www.brevardclerk.us/unclaimed-funds", "notes": "Unclaimed funds including registry of court."},
+    {"county": "Marion", "kind": "list", "url": "https://www.marioncountyclerk.org/departments/records-recording/tax-deeds-and-lands-available-for-taxes/unclaimed-funds/", "notes": "Tax deed surplus list, updated weekly, PDF."},
+    {"county": "Sumter", "kind": "list", "url": "https://www.sumterclerk.com/surplus-funds-list", "notes": "Foreclosure and tax deed surplus PDFs."},
+    {"county": "Pinellas", "kind": "forms", "url": "https://www.mypinellasclerk.gov/Portals/0/Forms/Surplusclaimform.pdf", "notes": "Surplus claim form."},
+    {"county": "Broward", "kind": "forms", "url": "https://www.broward.org/RecordsTaxesTreasury/TaxesFees/Documents/Affidavit_TaxDeed_Surplus_Funds_Post.pdf", "notes": "Affidavit and instructions. Broward requires original wet-ink documents; no email submissions."},
+    {"county": "Collier", "kind": "list", "url": "https://www.collierclerk.com/tax-deed-sales/tax-deed-surplus/", "notes": "Tax deed surplus page."},
+    {"county": "Leon", "kind": "list", "url": "https://cvweb.leonclerk.com/public/clerk_services/finance/tax_deeds/tax_deed_surplus.asp", "notes": "Surplus tax deeds list."}
+  ]
+}

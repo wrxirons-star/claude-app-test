@@ -44,7 +44,7 @@
       "claim_window_rule": "Claims by anyone other than the property owner must be filed by close of business on the 120th day after the mailed notice or they are barred. If no claims are filed in 120 days there is a conclusive presumption the titleholder is entitled to the surplus.",
       "owner_deadline": "The owner's claim is not barred by the 120-day rule, but unclaimed surplus is eventually remitted to the state as unclaimed property (ch. 717).",
       "unclaimed_after_days": 365,
-      "unclaimed_after_note": "[VERIFY] This tool assumes one year from the sale, matching the foreclosure rule; confirm the county clerk's remittance schedule.",
+      "unclaimed_after_note": "Lee County states unclaimed tax deed surplus is sent to the state about one to two years after the sale; this tool uses one year as the safe planning deadline. Confirm per county.",
       "unclaimed_destination": "Florida Department of Financial Services, unclaimed property (ch. 717). [VERIFY] Timing per 197.582 and county practice.",
       "fee_cap_fraction": 0.12,
       "fee_cap_basis": "197.582 does not itself state a finder fee cap; this tool applies the 12 percent foreclosure cap as house policy because clerks and courts scrutinize tax deed assignments against 45.033. [VERIFY] whether a 2024-2026 amendment added an explicit cap.",

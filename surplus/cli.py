@@ -59,7 +59,9 @@ def _money(s: str) -> float | None:
 
 def cmd_init(args, settings, store):
     path = write_default_config(settings, overwrite=args.force)
+    seeded = sum(store.seed_sources(s) for s in settings.operator.active_states)
     print(f"Data dir: {settings.home}\nDatabase: {settings.db_path}\nConfig:   {path}")
+    print(f"Seeded {seeded} known public-record sources for {', '.join(settings.operator.active_states)}.")
     print("Edit config.json with your business details before drafting documents.")
 
 
@@ -137,6 +139,14 @@ def cmd_cases(args, settings, store):
         print(f"{r['id']:>4} {r['state']:2} {(r.get('county') or '')[:12]:<12} {(r.get('case_number') or '')[:18]:<18} "
               f"{(r.get('owner_name') or '')[:28]:<28} {float(r.get('surplus_amount') or 0):>12,.2f} "
               f"{(r.get('sale_date') or '')[:10]:<10} {r['status']:<11} {float(r.get('score') or 0):>8.0f}")
+
+
+def cmd_sources(args, settings, store):
+    rows = store.sources(args.state or settings.operator.active_states[0], args.county)
+    for r in rows:
+        print(f"{r['state']} {(r.get('county') or '-'):<10} {r['kind']:<8} {r['url']}\n    {r.get('notes') or ''}")
+    if not rows:
+        print("No sources. Run `surplus init` to seed.")
 
 
 def cmd_show(args, settings, store):
@@ -256,6 +266,8 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("cases", help="list cases")
     s.add_argument("--state"); s.add_argument("--status", choices=CASE_STATUSES); s.add_argument("--county")
     s.add_argument("--min-amount", type=float); s.add_argument("--limit", type=int, default=50); s.set_defaults(fn=cmd_cases)
+    s = sub.add_parser("sources", help="list known public-record sources"); s.add_argument("--state"); s.add_argument("--county")
+    s.set_defaults(fn=cmd_sources)
     s = sub.add_parser("show", help="show one case"); s.add_argument("case_id", type=int); s.set_defaults(fn=cmd_show)
     s = sub.add_parser("note", help="add a note"); s.add_argument("case_id", type=int); s.add_argument("text")
     s.add_argument("--kind", default="note"); s.add_argument("--source-url"); s.set_defaults(fn=cmd_note)

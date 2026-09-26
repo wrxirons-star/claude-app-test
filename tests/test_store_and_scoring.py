@@ -87,3 +87,13 @@ def test_florida_tax_deed_sweet_spot_bonus():
     early, r2 = score_case({**base, "notice_date": "2026-08-15"}, today=TODAY)  # 23 days old
     assert sweet > plain and "sweet_spot" in r
     assert early == plain and "lien_window" in r2
+
+
+def test_seed_sources_is_idempotent(env):
+    _, store = env
+    n1 = store.seed_sources("FL")
+    n2 = store.seed_sources("FL")
+    assert n1 == n2 > 5
+    assert len(store.sources("FL")) == n1
+    assert any("leeclerk" in s["url"] for s in store.sources("FL", "Lee"))
+    assert store.seed_sources("TX") == 0

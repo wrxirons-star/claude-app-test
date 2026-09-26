@@ -302,6 +302,18 @@ class Store:
             "SELECT * FROM documents WHERE case_id=? ORDER BY id", (case_id,)
         ).fetchall()]
 
+    def seed_sources(self, state: str, actor: str = "seed") -> int:
+        """Load the bundled source list for a state (surplus/statutes/<state>_sources.json)."""
+        path = Path(__file__).parent / "statutes" / f"{state.lower()}_sources.json"
+        if not path.exists():
+            return 0
+        data = json.loads(path.read_text())
+        n = 0
+        for src in data.get("sources", []):
+            self.add_source(state, src["url"], src["kind"], src.get("county"), src.get("notes"), actor=actor)
+            n += 1
+        return n
+
     # -- bulk ----------------------------------------------------------------
     def import_rows(self, rows: Iterable[dict[str, Any]], actor: str = "import") -> tuple[int, int]:
         created = updated = 0
