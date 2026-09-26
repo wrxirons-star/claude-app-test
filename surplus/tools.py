@@ -11,6 +11,7 @@ from anthropic import beta_tool
 
 from .config import Settings
 from .documents import DOC_TYPES, render
+from .fetch import fetch
 from .packet import build_packet
 from .rules import RuleError, check_agreement, compute_economics, load_rules, normalize_state
 from .scoring import classify_owner, score_case
@@ -295,8 +296,40 @@ def make_tools(settings: Settings, store: Store) -> list:
         except KeyError as exc:
             return f"Error: {exc}"
 
+    @beta_tool
+    def fetch_url(url: str, offset: int = 0, max_chars: int = 40000) -> str:
+        """Download a URL from the operator's own computer and return its text. Use this for county
+        PDF reports, spreadsheets, 'showpublisheddocument' links, RealTDM/RealForeclose portals, and
+        any page web_fetch reports as not accessible. PDFs are converted to text page by page; HTML
+        returns the visible text plus a list of links so you can find the report file on a landing
+        page. Long documents are paged: call again with a larger offset to read more.
+
+        Args:
+            url: The full URL to download.
+            offset: Character offset to start from (for paging through long documents).
+            max_chars: Maximum characters to return in this call (default 40000).
+        """
+        try:
+            f = fetch(url, save_dir=settings.home / "downloads")
+        except Exception as exc:
+            return f"Error fetching {url}: {exc}"
+        body = f.text[offset: offset + max_chars]
+        more = len(f.text) - (offset + max_chars)
+        out = [f"URL: {f.final_url}", f"Type: {f.kind} ({f.content_type})", f"Saved: {f.saved_to}",
+               f"Characters: {len(f.text)} (showing {offset}-{offset + len(body)})", "", body]
+        if more > 0:
+            out.append(f"\n[{more} more characters; call again with offset={offset + max_chars}]")
+        if f.links:
+            interesting = [(l, u) for l, u in f.links
+                           if any(k in (l + u).lower() for k in ("surplus", "report", "document", "pdf", "excess",
+                                                                   "unclaimed", "tax deed", "realtdm", "list", "claim", "form"))]
+            shown = interesting[:60] or f.links[:60]
+            out.append("\nLinks:")
+            out += [f"- {l or '(no label)'}: {u}" for l, u in shown]
+        return "\n".join(out)
+
     return [get_state_rules, economics, compliance_check, save_lead, list_cases, get_case, update_case,
-            add_note, add_contact, add_source, list_sources, render_document, build_claim_packet]
+            add_note, add_contact, add_source, list_sources, render_document, build_claim_packet, fetch_url]
 
 
 SERVER_TOOLS: list[dict[str, Any]] = [

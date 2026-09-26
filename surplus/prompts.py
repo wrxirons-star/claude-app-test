@@ -33,7 +33,10 @@ Non-negotiables
   say so; do not address a letter to a dead person.
 
 How to work
-- Use web_search to find where a county publishes its list, then web_fetch the list page or PDF.
+- Use web_search to find where a county publishes its list. To read the list itself, prefer fetch_url,
+  which downloads from the operator's computer: it opens the PDF attachments, spreadsheets,
+  showpublisheddocument links, and RealTDM portals that web_fetch cannot. Use web_fetch only for
+  ordinary HTML pages. If web_fetch says a URL is not accessible, call fetch_url on it before giving up.
   Record every useful portal with add_source so the next run starts there.
 - For each row that meets the operator's minimum, call save_lead with every field you can read.
   Leave unknown fields out rather than guessing. Use the case number as written by the county.
@@ -77,6 +80,8 @@ Known sources for this area from previous runs:
 
 {lane_note}
 Steps:
+0. If a known source of kind "list" exists above, call fetch_url on it first. On a landing page, read the
+   Links section of the result to find the actual report file, then fetch_url that.
 1. If there is no known list URL, search for the county's surplus / excess proceeds / tax deed surplus
    page (clerk of court for Florida, district clerk for Texas, tax commissioner for Georgia). Record
    each real portal or list URL with add_source (kind: "list", "portal", "docket", or "forms").

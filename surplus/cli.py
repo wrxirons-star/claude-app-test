@@ -9,6 +9,7 @@
     surplus show 12
     surplus note 12 "spoke to clerk; amount confirmed"
     surplus set 12 status=contacting next_action="mail letter"
+    surplus fetch URL [--links]       download a county PDF or page and print its text
     surplus draft 12 intro_letter     render a document (no API call)
     surplus packet 12                 build the packet folder (no API call)
     surplus find FL --county Sumter   agent: discover and save leads
@@ -141,6 +142,13 @@ def cmd_cases(args, settings, store):
               f"{(r.get('sale_date') or '')[:10]:<10} {r['status']:<11} {float(r.get('score') or 0):>8.0f}")
 
 
+def cmd_fetch(args, settings, store):
+    from .fetch import fetch
+    f = fetch(args.url, save_dir=settings.home / "downloads")
+    print(f"{f.kind} {f.content_type} -> {f.saved_to}", file=sys.stderr)
+    print(f.text if not args.links else "\n".join(f"{l}\t{u}" for l, u in f.links))
+
+
 def cmd_sources(args, settings, store):
     rows = store.sources(args.state or settings.operator.active_states[0], args.county)
     for r in rows:
@@ -266,6 +274,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("cases", help="list cases")
     s.add_argument("--state"); s.add_argument("--status", choices=CASE_STATUSES); s.add_argument("--county")
     s.add_argument("--min-amount", type=float); s.add_argument("--limit", type=int, default=50); s.set_defaults(fn=cmd_cases)
+    s = sub.add_parser("fetch", help="download a URL (PDF or page) from this computer and print its text")
+    s.add_argument("url"); s.add_argument("--links", action="store_true", help="print links instead of text")
+    s.set_defaults(fn=cmd_fetch)
     s = sub.add_parser("sources", help="list known public-record sources"); s.add_argument("--state"); s.add_argument("--county")
     s.set_defaults(fn=cmd_sources)
     s = sub.add_parser("show", help="show one case"); s.add_argument("case_id", type=int); s.set_defaults(fn=cmd_show)
