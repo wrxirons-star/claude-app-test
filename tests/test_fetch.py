@@ -112,3 +112,10 @@ def test_playwright_path_downloads_pdf_from_inside_page(server, tmp_path):
     assert final.endswith("/showpublisheddocument/11509")
     html, ctype2, _ = fm._download_playwright(server + "/reports", timeout=30)
     assert b"Tax Deed Reports" in html
+
+
+def test_clean_url_encodes_spaces():
+    from surplus.fetch import _clean_url
+    assert _clean_url("https://x.org/TaxRoll/nalzip/2025 Tax Roll NAL12D8.zip") == "https://x.org/TaxRoll/nalzip/2025%20Tax%20Roll%20NAL12D8.zip"
+    assert _clean_url("https://x.org/a?b=1&c=%27d%27") == "https://x.org/a?b=1&c=%27d%27"
+    assert _clean_url("/tmp/file with space.pdf") == "/tmp/file with space.pdf"

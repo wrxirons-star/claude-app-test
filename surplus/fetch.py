@@ -204,8 +204,17 @@ def _download_playwright(url: str, timeout: int) -> tuple[bytes, str, str]:
             browser.close()
 
 
+def _clean_url(url: str) -> str:
+    """Percent-encode spaces and other unsafe characters people paste from link lists."""
+    from urllib.parse import quote
+    if "://" not in url:
+        return url
+    return quote(url.strip(), safe=":/?&=%#+,;@!$'()*[]~-._")
+
+
 def _download(url: str, timeout: int = 60) -> tuple[bytes, str, str]:
     """Local file, then urllib, then curl, then a headless browser."""
+    url = _clean_url(url)
     if url.startswith("file://") or (not url.startswith("http") and Path(url).expanduser().exists()):
         path = Path(url[7:] if url.startswith("file://") else url).expanduser()
         data = path.read_bytes()
